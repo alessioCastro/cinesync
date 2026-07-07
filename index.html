@@ -68,7 +68,7 @@
 
                     const roomId = generateRoomId();
                     sessionStorage.setItem('username', username);
-                    location.href = `/cine-room.html?roomId=${roomId}`;
+                    location.href = `/cinesync/cine-room.html?roomId=${roomId}`;
 
                 } else if (formId === "join-room") {
                     const username = document.getElementById('join-username').value.trim();
