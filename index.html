@@ -41,8 +41,6 @@
             <div class="container">
                 <h2>Entrar em uma sala</h2>
                 <form id="join-room">
-                    <label for="join-username">Seu nome</label>
-                    <input type="text" id="join-username" placeholder="Digite seu nome" required>
                     <label for="room-id">ID da sala</label>
                     <input type="text" id="room-id" placeholder="Digite o ID da sala" required>
                     <button type="submit">Entrar</button>
@@ -68,15 +66,12 @@
 
                     const roomId = generateRoomId();
                     sessionStorage.setItem('username', username);
-                    location.href = `/cinesync/cine-room.html?roomId=${roomId}`;
+                    location.href = `cine-room.html?roomId=${roomId}&mode=host`;
 
                 } else if (formId === "join-room") {
-                    const username = document.getElementById('join-username').value.trim();
                     const roomId = document.getElementById('room-id').value.trim();
-                    if (!username || !roomId) return alert('Digite seu nome e ID da sala');
-
-                    sessionStorage.setItem('username', username);
-                    location.href = `/cinesync/cine-room.html?roomId=${roomId}`;
+                    if (!roomId) return alert('Digite seu nome e ID da sala');
+                    location.href = `cine-room.html?roomId=${roomId}`;
                 }
             });
         });
