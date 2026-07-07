@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CineSync - Sala de Cinema Virtual</title>
+    <style>
+        :root {
+            --bg-main: #0a0a0a;
+            --bg-sidebar: #0f0f0f;
+            --accent: #dc2626;
+            --accent-hover: #b91c1c;
+            --text-main: #f4f4f5;
+            --text-dim: #a1a1aa;
+            --border: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, #000, transparent);
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            background: var(--accent);
+            padding: 0.5rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .logo-text p {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        #room-id {
+            text-transform: none;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            background: rgba(39, 39, 42, 0.5);
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #22c55e;
+        }
+
+        .icon-btn {
+            background: #27272a;
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn.active {
+            background: var(--accent);
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .player-section {
+            flex: 1;
+            background: #000;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
+
+        video {
+            width: 100%;
+            flex: 1;
+            /* Faz o vídeo ocupar dinamicamente o espaço restante */
+            min-height: 0;
+            /* Permite que o Flexbox encolha o vídeo se a tela for pequena */
+            object-fit: contain;
+            /* Mantém a proporção do cinema sem distorcer ou cortar a imagem */
+        }
+
+        /* Video Controls */
+        .video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .player-section:hover .video-controls {
+            opacity: 1;
+        }
+
+        .controls-row {
+            width: 100%;
+            /* Garante que a linha ocupe toda a largura da seção */
+            padding: 10px;
+            display: flex;
+            justify-content: flex-end;
+            /* Mantém os botões (URL/Arquivo) alinhados à direita */
+            align-items: center;
+        }
+
+        .controls-left,
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .time-display {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .btn-group {
+            background: rgba(39, 39, 42, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 4px;
+            border-radius: 8px;
+            display: flex;
+            border: 1px solid var(--border);
+        }
+
+        .text-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .text-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Sidebar Chat */
+        .chat-sidebar {
+            width: 380px;
+            background: var(--bg-sidebar);
+            border-left: 1px solid var(--border);
+            display: none;
+            transition: transform 0.3s ease;
+        }
+
+        .chat-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+        }
+
+        .message.mine {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-info {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .msg-bubble {
+            background: #27272a;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            border-top-left-radius: 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .mine .msg-bubble {
+            background: var(--accent);
+            color: white;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 0;
+        }
+
+        .chat-input-area {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            background: var(--bg-main);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: #18181b;
+            border: 1px solid var(--border);
+            padding: 0.8rem 3rem 0.8rem 1rem;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"]:focus {
+            outline: 2px solid rgba(220, 38, 38, 0.5);
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .modal-overlay {
+            z-index: 10000;
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 10px;
+        }
+
+        .modal-content {
+            position: relative;
+            background: #18181b;
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 12px;
+            width: 50%;
+            color: white;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .modal-content form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-content form input {
+            border: 1px solid var(--border);
+            background: #18181b;
+            padding: 1rem;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .modal-content form button {
+            border: 1px solid var(--border);
+            background: var(--accent);
+            padding: 0.8rem;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .chat-sidebar.open {
+            transform: translateY(0);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 1024px) {
+            .chat-sidebar {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                z-index: 50;
+                transform: translateY(100%);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h1>CineSync</h1>
+                <p class="hidden">Sala <span id="room-id"></span></p>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <div class="status-badge hidden">
+                <span class="status-dot"></span>
+                <span id="online-count">1 Online</span>
+            </div>
+            <button class="icon-btn" id="mic-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+            </button>
+            <button class="icon-btn" id="chat-toggle-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <div class="player-section" id="player-container">
+            <video controls id="main-video" src=""></video>
+            <div class="controls-row">
+                <div class="controls-right">
+                    <div class="btn-group">
+                        <button class="text-btn" id="url-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                            URL
+                        </button>
+                        <label class="text-btn" style="cursor:pointer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                <circle cx="12" cy="13" r="4" />
+                            </svg>
+                            ARQUIVO
+                            <input type="file" id="file-input" class="hidden" accept="video/*">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="chat-sidebar" id="sidebar">
+            <div class="chat-header">
+                <div style="display:flex; align-items:center; gap:0.5rem">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span style="font-weight:700">Chat ao vivo</span>
+                </div>
+                <button class="icon-btn" id="close-chat-btn" style="background:transparent">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="messages-container" id="messages"></div>
+
+            <div class="chat-input-area">
+                <form id="chat-form">
+                    <div class="input-wrapper">
+                        <input type="text" id="chat-input" placeholder="Escreve algo...">
+                        <button type="submit" class="send-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </aside>
+    </main>
+
+    <div class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="icon-btn close-btn" style="background:transparent;justify-self: flex-end;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2>URL do vídeo</h2>
+            <form id="video-form">
+                <input type="text" id="video-url" name="video_url" placeholder="Digite o URL do vídeo" required>
+                <button type="submit">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // ==========================================
+            // 1. SELETORES E VARIÁVEIS GLOBAIS
+            // ==========================================
+            const roomIdElement = document.getElementById('room-id');
+            const video = document.getElementById('main-video');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const messagesContainer = document.getElementById('messages');
+            const sidebar = document.getElementById('sidebar');
+            const chatToggle = document.getElementById('chat-toggle-btn');
+            const closeChat = document.getElementById('close-chat-btn');
+            const urlBtn = document.getElementById('url-btn');
+            const fileInput = document.getElementById('file-input');
+            const statusBadge = document.querySelector('.status-badge');
+            const onlineCountEl = document.getElementById('online-count');
+            const modal = document.querySelector('.modal-overlay');
+            const videoForm = document.getElementById('video-form');
+
+            // Dados da Sessão
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('roomId');
+            const username = sessionStorage.getItem('username') || 'Anônimo';
+
+            let isHost = false;
+            let syncWithClients = false;
+            let syncWithHost = true;
+
+            let peer = null;
+            let conn = null;          // Usado se formos Cliente (conexão com o Host)
+            let clientsConn = [];     // Usado se formos Host (conexão de dados com os Clientes)
+            let activeCalls = [];      // Armazena as chamadas de áudio ativas
+            let localStream = null;   // Armazena o stream do microfone local
+
+            if (roomId) {
+                roomIdElement.textContent = roomId;
+                document.querySelector('.logo-text p').classList.remove('hidden');
+            }
+
+            // Função auxiliar para renderizar mensagens com segurança (Prevenção contra XSS)
+            function appendMessage(sender, text) {
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+
+                const msgInfo = document.createElement('span');
+                msgInfo.className = 'msg-info';
+                msgInfo.textContent = `${sender} • ${time}`;
+
+                const msgBubble = document.createElement('div');
+                msgBubble.className = 'msg-bubble';
+                msgBubble.textContent = text; // Protege contra scripts maliciosos
+
+                messageDiv.appendChild(msgInfo);
+                messageDiv.appendChild(msgBubble);
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // ==========================================
+            // 2. GATILHOS E ESCUTAS
+            // ==========================================
+
+            // Enviar mensagem no chat
+            chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const message = chatInput.value.trim();
+                if (message) {
+                    appendMessage(username, message);
+                    // Avisa os outros clientes/host no chat
+                    sendToAllClients({ type: 'chat-message', sender: username, text: message });
+                    if (conn) {
+                        conn.send({ type: 'chat-message', sender: username, text: message });
+                    }
+                    chatInput.value = '';
+                }
+            });
+
+            videoForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(videoForm);
+                const videoUrl = formData.get('video_url');
+                if (videoUrl) {
+                    video.src = videoUrl;
+                    modal.classList.add('hidden');
+                    sendToAllClients({ type: 'video-changed', url: videoUrl });
+                }
+            });
+
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const videoUrl = URL.createObjectURL(file);
+                    video.src = videoUrl;
+                    sendToAllClients({ type: 'video-changed', url: videoUrl });
+                }
+            }
+
+            document.body.addEventListener('click', async (event) => {
+                const target = event.target;
+
+                if (target.closest('#mic-btn')) {
+                    try {
+                        // Solicita o microfone de forma limpa
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        console.log('Acesso ao microfone concedido!');
+
+                        // Se for Host, liga para todos os clientes conectados
+                        if (clientsConn.length > 0) {
+                            clientsConn.forEach(c => {
+                                const call = peer.call(c.peer, localStream);
+                                activeCalls.push(call);
+                            });
+                        }
+                        // Se for Cliente, liga direto para o Host
+                        else if (conn) {
+                            const call = peer.call(conn.peer, localStream);
+                            setupAudioCall(call);
+                        }
+                    } catch (error) {
+                        console.error('Acesso ao microfone negado:', error);
+                    }
+                    return;
+                }
+
+                if (target.closest('#chat-toggle-btn') || target.closest('#close-chat-btn')) {
+                    sidebar.classList.toggle('open');
+                    return;
+                }
+
+                if (isHost) {
+                    if (target.closest('#url-btn')) {
+                        modal.classList.remove('hidden');
+                        return;
+                    }
+                }
+
+                if (target.closest('.modal-overlay .close-btn')) {
+                    modal.classList.add('hidden');
+                    return;
+                }
+            });
+
+            // Eventos do player de vídeo
+            video.addEventListener('play', () => {
+                if (!isHost) return;
+                sendToAllClients({ type: 'play' });
+            });
+
+            video.addEventListener('pause', () => {
+                if (!isHost) return;
+                sendToAllClients({ type: 'pause' });
+            });
+
+            video.addEventListener('seeking', () => {
+                if (!isHost) return;
+                sendToAllClients({ type: 'seeking', time: video.currentTime });
+            });
+
+            // --- 1. FUNÇÕES AUXILIARES DE INICIALIZAÇÃO ---
+            function createPeer(id = null) {
+                return new Promise((resolve) => {
+                    const newInstance = id ? new Peer(id) : new Peer();
+                    newInstance.on('open', () => resolve(newInstance));
+                });
+            }
+
+            // Configura o recebimento de áudio nativo do WebRTC
+            function setupAudioCall(call) {
+                call.on('stream', (remoteStream) => {
+                    // Cria um elemento de áudio em memória para reproduzir a voz recebida
+                    let remoteAudio = document.getElementById(`audio-${call.peer}`);
+                    if (!remoteAudio) {
+                        remoteAudio = document.createElement('audio');
+                        remoteAudio.id = `audio-${call.peer}`;
+                        remoteAudio.autoplay = true;
+                        document.body.appendChild(remoteAudio);
+                    }
+                    remoteAudio.srcObject = remoteStream;
+                });
+            }
+
+            // --- 2. FLUXOS PRINCIPAIS (HOST / CLIENTE) ---
+            async function initAsClient() {
+                console.log("Tentando entrar na sala como Cliente...");
+                peer = await createPeer();
+
+                conn = peer.connect(roomId);
+
+                conn.on('open', () => {
+                    console.log(`🎉 Conectado ao Host da sala: ${roomId}`);
+                    setupDataFlow(conn);
+                    statusBadge.classList.remove('hidden');
+                    // CASSO NOVO: Envia o nome do usuário para o Host assim que conectar
+                    conn.send({ type: 'join-room', username: username });
+                });
+
+                // Escuta chamadas de áudio recebidas do Host ou de outros clientes
+                peer.on('call', (call) => {
+                    call.answer(localStream || undefined); // Responde com o próprio mic (se ativo)
+                    setupAudioCall(call);
+                });
+
+                conn.on('close', () => console.log("⚠️ A conexão com o Host foi encerrada."));
+
+                peer.on('error', (err) => {
+                    if (err.type === 'peer-unavailable') {
+                        console.log("⚠️ Host indisponível. Alternando para modo HOST...");
+                        peer.destroy();
+                        initAsHost();
+                    } else {
+                        console.error("Erro no Peer Cliente:", err);
+                    }
+                });
+            }
+
+            async function initAsHost() {
+                console.log(`👑 Abrindo a sala como HOST. ID: ${roomId}`);
+
+                try {
+                    peer = await createPeer(roomId);
+                    console.log(`Sala aberta. Aguardando clientes...`);
+                } catch (err) {
+                    console.error("Erro ao abrir sala como Host:", err);
+                    return;
+                }
+
+                peer.on('connection', (clientConn) => {
+                    console.log(`👥 Cliente conectado! ID: ${clientConn.peer}`);
+                    clientsConn.push(clientConn);
+                    setupDataFlow(clientConn);
+
+                    clientConn.on('open', () => {
+                        updateRoomCount();
+                        if (video.src) {
+                            clientConn.send({ type: 'video-info', url: video.src, time: video.currentTime, isPaused: video.paused });
+                        }
+                    });
+
+                    clientConn.on('close', () => {
+                        clientsConn = clientsConn.filter(c => c.peer !== clientConn.peer);
+                        updateRoomCount();
+                    });
+                });
+
+                // Host escuta e responde chamadas de voz vindas dos clientes
+                peer.on('call', (call) => {
+                    call.answer(localStream || undefined);
+                    setupAudioCall(call);
+                });
+
+                peer.on('error', (err) => {
+                    if (err.type === 'unavailable-id') console.error("ID de sala já ocupado!");
+                });
+
+                statusBadge.classList.remove('hidden');
+                isHost = true;
+            }
+
+            // --- 3. PROCESSAMENTO DE DADOS (SALA DE VÍDEO) ---
+            function setupDataFlow(connection) {
+                connection.on('data', (data) => {
+                    if (!data?.type) return;
+
+                    // CASO NOVO: Trata a chegada do novo membro na sala
+                    if (data.type === 'join-room') {
+                        // Guarda o nome dentro do próprio objeto de conexão para uso futuro se precisar
+                        connection.customUsername = data.username;
+
+                        // Renderiza no chat do Host
+                        appendMessage('Sistema', `${data.username} entrou na sala!`);
+
+                        // Avisa todos os outros clientes conectados, exceto o cliente que é o próprio que entrou
+                        clientsConn.forEach(clientConn => {
+                            if (clientConn.peer === connection.peer) return;
+                            clientConn.send({ type: 'chat-message', sender: 'Sistema', text: `${data.username} entrou na sala.` });
+                        });
+
+                        return;
+                    }
+
+                    if (data.type === 'room-stats') {
+                        onlineCountEl.textContent = `${data.total} Online`;
+                        return;
+                    }
+
+                    if (data.type === 'video-info') {
+                        video.src = data.url;
+                        video.load();
+
+                        if (!data.isPaused) video.play();
+
+                        if (video.readyState > 0) {
+                            video.currentTime = data.time;
+                        } else {
+                            video.addEventListener('canplay', () => {
+                                video.currentTime = data.time;
+                            }, { once: true });
+                        }
+                        return;
+                    }
+
+                    if (data.type === 'video-changed') {
+                        video.src = data.url;
+                        video.load();
+                        return;
+                    }
+
+                    if (data.type === 'chat-message') {
+                        appendMessage(data.sender, data.text);
+                        // Se for o Host recebendo, replica a mensagem para todos os outros clientes
+                        if (!conn) {
+                            clientsConn.forEach(c => {
+                                if (c.peer !== connection.peer) c.send(data);
+                            });
+                        }
+                        return;
+                    }
+
+                    if (isHost) return;
+
+                    const acoesVideo = {
+                        'play': () => { video.play(); },
+                        'pause': () => { video.pause(); },
+                        'seeking': () => {
+                            if (video.readyState > 0) {
+                                video.currentTime = data.time;
+                            } else {
+                                video.addEventListener('loadedmetadata', () => {
+                                    video.currentTime = data.time;
+                                }, { once: true }); // Executa apenas uma vez e limpa-se sozinho
+                            }
+                        }
+                    };
+
+                    if (acoesVideo[data.type]) {
+                        acoesVideo[data.type]();
+                    }
+                });
+            }
+
+            function updateRoomCount() {
+                const totalUsers = clientsConn.length + 1;
+                onlineCountEl.textContent = `${totalUsers} Online`;
+                sendToAllClients({ type: 'room-stats', total: totalUsers });
+            }
+
+            function sendToAllClients(data) {
+                clientsConn.forEach(clientConn => {
+                    if (clientConn.open) {
+                        clientConn.send(data);
+                    }
+                });
+            }
+
+            // --- INICIALIZAÇÃO ---
+            initAsClient();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineSync - Sala de Cinema Virtual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h1>CineSync</h1>
+                <p>Sala VIP #882</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="containers-wrapper">
+            <div class="container">
+                <h2>Criar sala</h2>
+                <form id="create-room">
+                    <label for="create-username">Seu nome</label>
+                    <input type="text" id="create-username" placeholder="Digite seu nome" required>
+                    <button type="submit">Criar</button>
+                </form>
+            </div>
+
+            <div class="container">
+                <h2>Entrar em uma sala</h2>
+                <form id="join-room">
+                    <label for="join-username">Seu nome</label>
+                    <input type="text" id="join-username" placeholder="Digite seu nome" required>
+                    <label for="room-id">ID da sala</label>
+                    <input type="text" id="room-id" placeholder="Digite o ID da sala" required>
+                    <button type="submit">Entrar</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Seleciona todos os formulários
+        const forms = document.querySelectorAll('form');
+
+        forms.forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                // Pegamos o ID do formulário atual que disparou o evento
+                const formId = e.target.id;
+
+                if (formId === "create-room") {
+                    const username = document.getElementById('create-username').value.trim();
+                    if (!username) return alert('Digite seu nome');
+
+                    const roomId = generateRoomId();
+                    sessionStorage.setItem('username', username);
+                    location.href = `/cine-room.html?roomId=${roomId}`;
+
+                } else if (formId === "join-room") {
+                    const username = document.getElementById('join-username').value.trim();
+                    const roomId = document.getElementById('room-id').value.trim();
+                    if (!username || !roomId) return alert('Digite seu nome e ID da sala');
+
+                    sessionStorage.setItem('username', username);
+                    location.href = `/cine-room.html?roomId=${roomId}`;
+                }
+            });
+        });
+
+        // Função que gera um ID de sala aleatório com 6 caracteres
+        function generateRoomId() {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let roomId = '';
+            for (let i = 0; i < 6; i++) {
+                roomId += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return roomId;
+        }
+    </script>
+</body>
+
+</html>
