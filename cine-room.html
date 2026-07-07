@@ -433,7 +433,7 @@
 
     <main>
         <div class="player-section" id="player-container">
-            <video controls id="main-video" src=""></video>
+            <video playsinline webkit-playsinline id="main-video" src=""></video>
             <div class="controls-row">
                 <div class="controls-right">
                     <div class="btn-group">
@@ -511,6 +511,22 @@
         </div>
     </div>
 
+    <div class="modal-overlay hidden" id="username-modal">
+        <div class="modal-content">
+            <button class="icon-btn close-btn" style="background:transparent;justify-self: flex-end;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2>Seu nome</h2>
+            <form id="username-form">
+                <input type="text" id="username" name="username" placeholder="Digite seu nome" required>
+                <button type="submit">Entrar</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             // ==========================================
@@ -529,11 +545,14 @@
             const statusBadge = document.querySelector('.status-badge');
             const onlineCountEl = document.getElementById('online-count');
             const modal = document.querySelector('.modal-overlay');
+            const usernameModal = document.getElementById('username-modal');
             const videoForm = document.getElementById('video-form');
+            const usernameForm = document.getElementById('username-form');
 
             // Dados da Sessão
             const urlParams = new URLSearchParams(window.location.search);
             const roomId = urlParams.get('roomId');
+            const mode = urlParams.get('mode') || 'client';
             const username = sessionStorage.getItem('username') || 'Anônimo';
 
             let isHost = false;
@@ -575,6 +594,26 @@
             // ==========================================
             // 2. GATILHOS E ESCUTAS
             // ==========================================
+
+            if (mode === "client") {
+                usernameModal.classList.remove('hidden');
+
+                if (username !== 'Anônimo') {
+                    document.getElementById('username').value = username;
+                }
+
+                usernameForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('username').value.trim();
+                    if (username) {
+                        sessionStorage.setItem('username', username);
+                        usernameModal.remove();
+                        initAsClient();
+                    }
+                });
+            } else {
+                initAsHost();
+            }
 
             // Enviar mensagem no chat
             chatForm.addEventListener('submit', (e) => {
@@ -667,9 +706,9 @@
                 sendToAllClients({ type: 'pause' });
             });
 
-            video.addEventListener('seeking', () => {
+            video.addEventListener('seeked', () => {
                 if (!isHost) return;
-                sendToAllClients({ type: 'seeking', time: video.currentTime });
+                sendToAllClients({ type: 'seeked', time: video.currentTime });
             });
 
             // --- 1. FUNÇÕES AUXILIARES DE INICIALIZAÇÃO ---
@@ -769,6 +808,7 @@
                 });
 
                 statusBadge.classList.remove('hidden');
+                video.controls = true;
                 isHost = true;
             }
 
@@ -837,7 +877,7 @@
                     const acoesVideo = {
                         'play': () => { video.play(); },
                         'pause': () => { video.pause(); },
-                        'seeking': () => {
+                        'seeked': () => {
                             if (video.readyState > 0) {
                                 video.currentTime = data.time;
                             } else {
@@ -867,9 +907,6 @@
                     }
                 });
             }
-
-            // --- INICIALIZAÇÃO ---
-            initAsClient();
         });
     </script>
 </body>
