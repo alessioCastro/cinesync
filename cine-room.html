@@ -695,21 +695,19 @@
                 }
             });
 
-            // Eventos do player de vídeo
-            video.addEventListener('play', () => {
+            function sendVideoState() {
                 if (!isHost) return;
-                sendToAllClients({ type: 'play' });
-            });
 
-            video.addEventListener('pause', () => {
-                if (!isHost) return;
-                sendToAllClients({ type: 'pause' });
-            });
+                sendToAllClients({
+                    type: 'video-state',
+                    currentTime: video.currentTime,
+                    paused: video.paused
+                });
+            }
 
-            video.addEventListener('seeked', () => {
-                if (!isHost) return;
-                sendToAllClients({ type: 'seeked', time: video.currentTime });
-            });
+            video.addEventListener('play', sendVideoState);
+            video.addEventListener('pause', sendVideoState);
+            video.addEventListener('seeked', sendVideoState);
 
             // --- 1. FUNÇÕES AUXILIARES DE INICIALIZAÇÃO ---
             function createPeer(id = null) {
@@ -817,83 +815,123 @@
                 connection.on('data', (data) => {
                     if (!data?.type) return;
 
-                    // CASO NOVO: Trata a chegada do novo membro na sala
+                    // ===========================
+                    // ENTRADA NA SALA
+                    // ===========================
                     if (data.type === 'join-room') {
-                        // Guarda o nome dentro do próprio objeto de conexão para uso futuro se precisar
                         connection.customUsername = data.username;
 
-                        // Renderiza no chat do Host
                         appendMessage('Sistema', `${data.username} entrou na sala!`);
 
-                        // Avisa todos os outros clientes conectados, exceto o cliente que é o próprio que entrou
                         clientsConn.forEach(clientConn => {
                             if (clientConn.peer === connection.peer) return;
-                            clientConn.send({ type: 'chat-message', sender: 'Sistema', text: `${data.username} entrou na sala.` });
+
+                            clientConn.send({
+                                type: 'chat-message',
+                                sender: 'Sistema',
+                                text: `${data.username} entrou na sala.`
+                            });
                         });
 
                         return;
                     }
 
+                    // ===========================
+                    // CONTADOR
+                    // ===========================
                     if (data.type === 'room-stats') {
                         onlineCountEl.textContent = `${data.total} Online`;
                         return;
                     }
 
+                    // ===========================
+                    // CLIENTE RECEBE O VÍDEO AO ENTRAR
+                    // ===========================
                     if (data.type === 'video-info') {
-                        video.src = data.url;
-                        video.load();
 
-                        if (!data.isPaused) video.play();
-
-                        if (video.readyState > 0) {
-                            video.currentTime = data.time;
-                        } else {
-                            video.addEventListener('canplay', () => {
-                                video.currentTime = data.time;
-                            }, { once: true });
+                        if (video.src !== data.url) {
+                            video.src = data.url;
+                            video.load();
                         }
+
+                        video.addEventListener('loadedmetadata', () => {
+
+                            video.currentTime = data.time;
+
+                            if (!data.isPaused) {
+                                video.play().catch(console.error);
+                            }
+
+                        }, { once: true });
+
                         return;
                     }
 
+                    // ===========================
+                    // TROCA DE VÍDEO
+                    // ===========================
                     if (data.type === 'video-changed') {
-                        video.src = data.url;
-                        video.load();
+
+                        if (video.src !== data.url) {
+                            video.src = data.url;
+                            video.load();
+                        }
+
                         return;
                     }
 
+                    // ===========================
+                    // CHAT
+                    // ===========================
                     if (data.type === 'chat-message') {
+
                         appendMessage(data.sender, data.text);
-                        // Se for o Host recebendo, replica a mensagem para todos os outros clientes
+
+                        // Host replica para os demais clientes
                         if (!conn) {
                             clientsConn.forEach(c => {
-                                if (c.peer !== connection.peer) c.send(data);
+                                if (c.peer !== connection.peer) {
+                                    c.send(data);
+                                }
                             });
                         }
+
                         return;
                     }
 
+                    // Host não precisa sincronizar vídeo
                     if (isHost) return;
 
-                    const acoesVideo = {
-                        'play': () => { video.play(); },
-                        'pause': () => { video.pause(); },
-                        'seeked': () => {
-                            if (video.readyState > 0) {
-                                video.currentTime = data.time;
-                            } else {
-                                video.addEventListener('loadedmetadata', () => {
-                                    video.currentTime = data.time;
-                                }, { once: true }); // Executa apenas uma vez e limpa-se sozinho
-                            }
-                        }
-                    };
+                    // ===========================
+                    // SINCRONIZAÇÃO DO PLAYER
+                    // ===========================
+                    if (data.type === 'video-state') {
 
-                    if (acoesVideo[data.type]) {
-                        acoesVideo[data.type]();
+                        const diff = Math.abs(video.currentTime - data.currentTime);
+
+                        // Só faz seek quando realmente necessário
+                        if (diff > 0.5) {
+                            video.currentTime = data.currentTime;
+                        }
+
+                        if (data.paused) {
+
+                            if (!video.paused) {
+                                video.pause();
+                            }
+
+                        } else {
+
+                            if (video.paused) {
+                                video.play().catch(console.error);
+                            }
+
+                        }
+
+                        return;
                     }
                 });
             }
-
             function updateRoomCount() {
                 const totalUsers = clientsConn.length + 1;
                 onlineCountEl.textContent = `${totalUsers} Online`;
