@@ -134,17 +134,13 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 0;
         }
 
         video {
             width: 100%;
-            flex: 1;
-            /* Faz o vídeo ocupar dinamicamente o espaço restante */
             min-height: 0;
-            /* Permite que o Flexbox encolha o vídeo se a tela for pequena */
+            flex: 1;
             object-fit: contain;
-            /* Mantém a proporção do cinema sem distorcer ou cortar a imagem */
         }
 
         /* Video Controls */
@@ -315,6 +311,17 @@
             cursor: pointer;
         }
 
+        .new-message-toast {
+            z-index: 999;
+            position: absolute;
+            bottom: 150px;
+            right: 20px;
+            border-radius: 10px;
+            padding: 20px;
+            background: linear-gradient(to top, #000, #00000087);
+
+        }
+
         .modal-overlay {
             z-index: 10000;
             position: fixed;
@@ -437,7 +444,7 @@
             <div class="controls-row">
                 <div class="controls-right">
                     <div class="btn-group">
-                        <button class="text-btn" id="url-btn">
+                        <button class="text-btn" id="url-btn" disabled>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -453,7 +460,7 @@
                                 <circle cx="12" cy="13" r="4" />
                             </svg>
                             ARQUIVO
-                            <input type="file" id="file-input" class="hidden" accept="video/*">
+                            <input type="file" id="file-input" class="hidden" accept="video/*" disabled>
                         </label>
                     </div>
                 </div>
@@ -495,6 +502,12 @@
         </aside>
     </main>
 
+    <!-- === NOTIFICACAO DE ULTIMA NOVA MENSAGEM COM PREVIA DO TEXTO === -->
+    <div class="new-message-toast hidden" id="messageToast">
+        <strong>Nova mensagem!</strong>
+        <p id="messageToastText"></p>
+    </div>
+
     <div class="modal-overlay hidden">
         <div class="modal-content">
             <button class="icon-btn close-btn" style="background:transparent;justify-self: flex-end;">
@@ -527,6 +540,20 @@
         </div>
     </div>
 
+    <div class="modal-overlay hidden" id="error-modal">
+        <div class="modal-content">
+            <button class="icon-btn close-btn" style="background:transparent;justify-self: flex-end;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2>Erro</h2>
+            <p id="error-message"></p>
+            <button id="error-ok">OK</button>
+        </div>
+    </div>
+
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             // ==========================================
@@ -546,6 +573,9 @@
             const onlineCountEl = document.getElementById('online-count');
             const modal = document.querySelector('.modal-overlay');
             const usernameModal = document.getElementById('username-modal');
+            const errorModal = document.getElementById('error-modal');
+            const errorMessage = document.getElementById('error-message');
+            const errorOkBtn = document.getElementById('error-ok');
             const videoForm = document.getElementById('video-form');
             const usernameForm = document.getElementById('username-form');
 
@@ -553,7 +583,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const roomId = urlParams.get('roomId');
             const mode = urlParams.get('mode') || 'client';
-            const username = sessionStorage.getItem('username') || 'Anônimo';
+            let username = sessionStorage.getItem('username') || 'Anônimo';
 
             let isHost = false;
             let syncWithClients = false;
@@ -564,6 +594,8 @@
             let clientsConn = [];     // Usado se formos Host (conexão de dados com os Clientes)
             let activeCalls = [];      // Armazena as chamadas de áudio ativas
             let localStream = null;   // Armazena o stream do microfone local
+            let receivedChunks = [];
+            let incomingMeta = null;
 
             if (roomId) {
                 roomIdElement.textContent = roomId;
@@ -589,6 +621,15 @@
                 messageDiv.appendChild(msgBubble);
                 messagesContainer.appendChild(messageDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                if (sidebar.classList.contains('open')) return;
+
+                document.getElementById('messageToastText').textContent = `${sender}: ${text}`;
+                messageToast.classList.remove('hidden');
+
+                setTimeout(() => {
+                    messageToast.classList.add('hidden');
+                }, 10000);
             }
 
             // ==========================================
@@ -604,7 +645,7 @@
 
                 usernameForm.addEventListener('submit', (e) => {
                     e.preventDefault();
-                    const username = document.getElementById('username').value.trim();
+                    username = document.getElementById('username').value.trim();
                     if (username) {
                         sessionStorage.setItem('username', username);
                         usernameModal.remove();
@@ -641,14 +682,63 @@
                 }
             });
 
+            // ==========================================
+            // ENVIO DE ARQUIVO VÍDEO (CHUNKED P2P)
+            // ==========================================
             fileInput.onchange = (e) => {
                 const file = e.target.files[0];
-                if (file) {
-                    const videoUrl = URL.createObjectURL(file);
-                    video.src = videoUrl;
-                    sendToAllClients({ type: 'video-changed', url: videoUrl });
-                }
-            }
+                if (!file) return;
+
+                // 1. Toca localmente no próprio player do Host
+                const videoUrl = URL.createObjectURL(file);
+                video.src = videoUrl;
+                video.load();
+
+                // 2. Avisa os clientes
+                sendToAllClients({
+                    type: 'video-meta',
+                    name: file.name,
+                    size: file.size,
+                    mimeType: file.type
+                });
+
+                // 3. Tamanho ultra-seguro para evitar corrupção em Desktops
+                const CHUNK_SIZE = 16 * 1024; // 16KB 
+                let offset = 0;
+                const reader = new FileReader();
+
+                const readNextChunk = () => {
+                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    reader.readAsArrayBuffer(slice);
+                };
+
+                reader.onload = (event) => {
+                    const buffer = event.target.result;
+
+                    clientsConn.forEach(clientConn => {
+                        if (clientConn.open) {
+                            clientConn.send({
+                                type: 'video-data',
+                                payload: buffer
+                            });
+                        }
+                    });
+
+                    offset += buffer.byteLength;
+
+                    if (offset < file.size) {
+                        // O segredo está aqui: um atraso de 1 milissegundo evita o estouro do buffer
+                        // de rede no navegador do computador, impedindo que dados se percam
+                        setTimeout(readNextChunk, 1);
+                    } else {
+                        console.log("🎉 Vídeo enviado completamente e sem corrupção!");
+                        sendToAllClients({ type: 'video-end' });
+                    }
+                };
+
+                // Inicia o processo
+                readNextChunk();
+            };
 
             document.body.addEventListener('click', async (event) => {
                 const target = event.target;
@@ -737,7 +827,7 @@
                 console.log("Tentando entrar na sala como Cliente...");
                 peer = await createPeer();
 
-                conn = peer.connect(roomId);
+                conn = peer.connect(roomId, { reliable: true });
 
                 conn.on('open', () => {
                     console.log(`🎉 Conectado ao Host da sala: ${roomId}`);
@@ -745,6 +835,18 @@
                     statusBadge.classList.remove('hidden');
                     // CASSO NOVO: Envia o nome do usuário para o Host assim que conectar
                     conn.send({ type: 'join-room', username: username });
+
+                    setInterval(() => {
+                        if (conn?.open) {
+                            conn.send({
+                                type: 'ping'
+                            });
+                        }
+                    }, 10000);
+                });
+
+                window.addEventListener('beforeunload', () => {
+                    conn.close(); // Força o fechamento limpo antes de destruir a janela
                 });
 
                 // Escuta chamadas de áudio recebidas do Host ou de outros clientes
@@ -753,13 +855,21 @@
                     setupAudioCall(call);
                 });
 
-                conn.on('close', () => console.log("⚠️ A conexão com o Host foi encerrada."));
+                conn.on('close', () => {
+                    console.log("⚠️ A conexão com o Host foi encerrada.");
+                    errorMessage.innerText = "A conexão com o Host foi encerrada.";
+                    errorModal.classList.remove('hidden');
+                });
 
                 peer.on('error', (err) => {
                     if (err.type === 'peer-unavailable') {
-                        console.log("⚠️ Host indisponível. Alternando para modo HOST...");
+                        /*console.log("⚠️ Host indisponível. Alternando para modo HOST...");
                         peer.destroy();
-                        initAsHost();
+                        initAsHost();*/
+                        console.log("Host indisponível.");
+                        peer.destroy();
+                        errorMessage.innerText = "Host indisponível.";
+                        errorModal.classList.remove('hidden');
                     } else {
                         console.error("Erro no Peer Cliente:", err);
                     }
@@ -771,7 +881,36 @@
 
                 try {
                     peer = await createPeer(roomId);
+                    isHost = true;
+                    statusBadge.classList.remove('hidden');
+                    video.controls = true;
+                    urlBtn.disabled = false;
+                    fileInput.disabled = false;
                     console.log(`Sala aberta. Aguardando clientes...`);
+
+                    setInterval(() => {
+
+                        const now = Date.now();
+
+                        clientsConn = clientsConn.filter(client => {
+
+                            if (now - (client.lastPing || 0) > 30000) {
+
+                                console.log("Cliente morto:", client.peer);
+
+                                try {
+                                    client.close();
+                                } catch { }
+
+                                return false;
+                            }
+
+                            return true;
+                        });
+
+                        updateRoomCount();
+
+                    }, 5000);
                 } catch (err) {
                     console.error("Erro ao abrir sala como Host:", err);
                     return;
@@ -779,6 +918,9 @@
 
                 peer.on('connection', (clientConn) => {
                     console.log(`👥 Cliente conectado! ID: ${clientConn.peer}`);
+
+                    clientConn.lastPing = Date.now();
+
                     clientsConn.push(clientConn);
                     setupDataFlow(clientConn);
 
@@ -793,6 +935,24 @@
                         clientsConn = clientsConn.filter(c => c.peer !== clientConn.peer);
                         updateRoomCount();
                     });
+
+                    clientConn.on('error', (err) => {
+                        console.log(`Conexão com ${clientConn.peer} gerou um erro ou caiu.`);
+                        clientsConn = clientsConn.filter(c => c.peer !== clientConn.peer);
+                        updateRoomCount();
+                    });
+
+                    clientConn.peerConnection.onconnectionstatechange = () => {
+                        if (
+                            clientConn.peerConnection.connectionState === "failed" ||
+                            clientConn.peerConnection.connectionState === "closed" ||
+                            clientConn.peerConnection.connectionState === "disconnected"
+                        ) {
+
+                            clientsConn = clientsConn.filter(c => c.peer !== clientConn.peer);
+                            updateRoomCount();
+                        }
+                    };
                 });
 
                 // Host escuta e responde chamadas de voz vindas dos clientes
@@ -804,16 +964,52 @@
                 peer.on('error', (err) => {
                     if (err.type === 'unavailable-id') console.error("ID de sala já ocupado!");
                 });
-
-                statusBadge.classList.remove('hidden');
-                video.controls = true;
-                isHost = true;
             }
 
             // --- 3. PROCESSAMENTO DE DADOS (SALA DE VÍDEO) ---
             function setupDataFlow(connection) {
                 connection.on('data', (data) => {
                     if (!data?.type) return;
+
+                    // ==========================================
+                    // RECEBIMENTO DE ARQUIVOS (MÉTODOS CLIENTE)
+                    // ==========================================
+
+                    // Passo A: Cliente recebe os metadados do arquivo
+                    if (data.type === 'video-meta') {
+                        incomingMeta = data;
+                        receivedChunks = []; // Limpa buffers anteriores
+                        console.log(`Recebendo vídeo: ${data.name} (${(data.size / 1024 / 1024).toFixed(2)} MB)`);
+                        return;
+                    }
+
+                    // Passo B: Cliente recebe um pedaço isolado do arquivo
+                    if (data.type === 'video-data') {
+                        if (receivedChunks) {
+                            receivedChunks.push(data.payload);
+                        }
+                        return;
+                    }
+
+                    // Passo C: O Host avisa que o envio acabou. Hora de montar o arquivo!
+                    if (data.type === 'video-end') {
+                        if (receivedChunks.length > 0 && incomingMeta) {
+                            console.log("Montando o arquivo de vídeo recebido...");
+
+                            // Cria o arquivo binário na memória do cliente
+                            const videoBlob = new Blob(receivedChunks, { type: incomingMeta.mimeType });
+                            const localVideoUrl = URL.createObjectURL(videoBlob);
+
+                            // Aplica no player do cliente
+                            video.src = localVideoUrl;
+                            video.load();
+
+                            // Limpa a memória
+                            receivedChunks = [];
+                            incomingMeta = null;
+                        }
+                        return;
+                    }
 
                     // ===========================
                     // ENTRADA NA SALA
@@ -833,6 +1029,34 @@
                             });
                         });
 
+                        return;
+                    }
+
+                    // ===========================
+                    // CHAT
+                    // ===========================
+                    if (data.type === 'chat-message') {
+
+                        appendMessage(data.sender, data.text);
+
+                        // Host replica para os demais clientes
+                        if (!conn) {
+                            clientsConn.forEach(clientConn => {
+                                if (clientConn.peer === connection.peer) return;
+                                clientConn.send(data);
+                            });
+                        }
+
+                        return;
+                    }
+
+                    // Host não precisa sincronizar vídeo
+                    if (isHost) {
+                        if (syncWithHost) return;
+                    }
+
+                    if (data.type === 'ping') {
+                        connection.lastPing = Date.now();
                         return;
                     }
 
@@ -881,28 +1105,6 @@
                     }
 
                     // ===========================
-                    // CHAT
-                    // ===========================
-                    if (data.type === 'chat-message') {
-
-                        appendMessage(data.sender, data.text);
-
-                        // Host replica para os demais clientes
-                        if (!conn) {
-                            clientsConn.forEach(c => {
-                                if (c.peer !== connection.peer) {
-                                    c.send(data);
-                                }
-                            });
-                        }
-
-                        return;
-                    }
-
-                    // Host não precisa sincronizar vídeo
-                    if (isHost) return;
-
-                    // ===========================
                     // SINCRONIZAÇÃO DO PLAYER
                     // ===========================
                     if (data.type === 'video-state') {
@@ -933,6 +1135,9 @@
                 });
             }
             function updateRoomCount() {
+                // Garante que só estamos contando clientes cuja conexão de dados realmente diz estar aberta
+                clientsConn = clientsConn.filter(c => c.open);
+
                 const totalUsers = clientsConn.length + 1;
                 onlineCountEl.textContent = `${totalUsers} Online`;
                 sendToAllClients({ type: 'room-stats', total: totalUsers });
