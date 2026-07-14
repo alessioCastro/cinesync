@@ -3,8 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <title>CineSync - Sala de Cinema Virtual</title>
     <style>
         :root {
@@ -22,6 +21,11 @@
             padding: 0;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        html,
+        body {
+            touch-action: none;
         }
 
         body {
@@ -120,13 +124,19 @@
 
         /* Main Content */
         main {
+            min-height: 0;
             flex: 1;
             display: flex;
-            overflow: hidden;
-            position: relative;
+        }
+
+        .left-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .player-section {
+            min-height: 0;
             flex: 1;
             background: #000;
             position: relative;
@@ -158,8 +168,87 @@
             transition: opacity 0.3s;
         }
 
-        .player-section:hover .video-controls {
+        .player-controls {
+            z-index: 999;
+            position: absolute;
+            bottom: 0;
+            padding: 0 15px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .player-section:hover .player-controls {
             opacity: 1;
+        }
+
+        .play-pause-btn {
+            border: none;
+            background: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .time-display {
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.5rem;
+        }
+
+        #progressRange {
+            margin-right: 10px;
+            flex: 1;
+            height: 6px;
+            cursor: pointer;
+            background: #444;
+            border-radius: 3px;
+            appearance: none;
+            -webkit-appearance: none;
+            outline: none;
+        }
+
+        /* O "pino" que arrasta a barra */
+        #progressRange::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 10px;
+            height: 10px;
+            background: white;
+            /* Azul estilo iOS, mude se quiser */
+            cursor: pointer;
+        }
+
+        #progressRange::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .pip-btn {
+            margin-left: auto;
+            border: none;
+            background: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .full-screen-btn {
+            margin-left: 10px;
+            border: none;
+            background: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
         }
 
         .controls-row {
@@ -177,12 +266,6 @@
             display: flex;
             align-items: center;
             gap: 1.5rem;
-        }
-
-        .time-display {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            font-variant-numeric: tabular-nums;
         }
 
         .btn-group {
@@ -319,7 +402,10 @@
             border-radius: 10px;
             padding: 20px;
             background: linear-gradient(to top, #000, #00000087);
+        }
 
+        .new-message-toast h2 {
+            font-size: 16px;
         }
 
         .modal-overlay {
@@ -418,7 +504,7 @@
         <div class="header-actions">
             <div class="status-badge hidden">
                 <span class="status-dot"></span>
-                <span id="online-count">1 Online</span>
+                <span id="online-count"></span>
             </div>
             <button class="icon-btn" id="mic-btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -439,8 +525,42 @@
     </header>
 
     <main>
-        <div class="player-section" id="player-container">
-            <video playsinline webkit-playsinline id="main-video" src=""></video>
+        <div class="left-column">
+            <div class="player-section" id="player-container">
+                <video playsinline webkit-playsinline id="main-video"></video>
+                <div class="player-controls">
+                    <button class="play-pause-btn hidden" title="Play/Pause">
+                        <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                            viewBox="0 0 210 210">
+                            <path d="M179.07 105 30.93 210V0z" style="fill:white;" />
+                        </svg>
+                        <svg class="pause-icon hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                            viewBox="0 0 512 512">
+                            <path d="M0 20.885h188.088v470.23H0zm323.912 0H512v470.23H323.912z" style="fill:white;" />
+                        </svg>
+                    </button>
+                    <div class="time-display">
+                        <span id="current-time">0:00</span> | <span id="duration">0:00</span>
+                    </div>
+                    <!-- Barra de progresso nativa -->
+                    <input class="hidden" type="range" id="progressRange" min="0" max="0" value="0" step="0.1">
+                    <button class="pip-btn" title="Picture in Picture">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16">
+                            <path
+                                d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2zm7 6h5a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5"
+                                style="fill: white;" />
+                        </svg>
+                    </button>
+                    <button class="full-screen-btn">
+                        <svg class="full-screen-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                            viewBox="0 0 16 16">
+                            <path
+                                d="M10 15h5v-5h-1.8v3.2H10zm-4 0v-1.8H2.8V10H1v5zm4-12.2h3.2V6H15V1h-5zM6 1v1.8H2.8V6H1V1z"
+                                fill="white" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
             <div class="controls-row">
                 <div class="controls-right">
                     <div class="btn-group">
@@ -504,8 +624,8 @@
 
     <!-- === NOTIFICACAO DE ULTIMA NOVA MENSAGEM COM PREVIA DO TEXTO === -->
     <div class="new-message-toast hidden" id="messageToast">
-        <strong>Nova mensagem!</strong>
-        <p id="messageToastText"></p>
+        <h2 id="toastUsername"></h2>
+        <p id="toastMessage"></p>
     </div>
 
     <div class="modal-overlay hidden">
@@ -561,6 +681,13 @@
             // ==========================================
             const roomIdElement = document.getElementById('room-id');
             const video = document.getElementById('main-video');
+            const playerControls = document.querySelector('.player-controls');
+            const playIcons = document.querySelectorAll('.play-icon');
+            const pauseIcons = document.querySelectorAll('.pause-icon');
+            const playPauseBtn = document.querySelector('.play-pause-btn');
+            const currentTime = document.getElementById('current-time');
+            const duration = document.getElementById('duration');
+            const progressRange = document.getElementById('progressRange');
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
             const messagesContainer = document.getElementById('messages');
@@ -624,7 +751,8 @@
 
                 if (sidebar.classList.contains('open')) return;
 
-                document.getElementById('messageToastText').textContent = `${sender}: ${text}`;
+                document.getElementById('toastUsername').textContent = sender;
+                document.getElementById('toastMessage').textContent = text;
                 messageToast.classList.remove('hidden');
 
                 setTimeout(() => {
@@ -649,6 +777,7 @@
                     if (username) {
                         sessionStorage.setItem('username', username);
                         usernameModal.remove();
+                        document.querySelector('.full-screen-btn').classList.remove('hidden');
                         initAsClient();
                     }
                 });
@@ -673,13 +802,40 @@
 
             videoForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+
                 const formData = new FormData(videoForm);
                 const videoUrl = formData.get('video_url');
-                if (videoUrl) {
-                    video.src = videoUrl;
+
+                if (!videoUrl) return;
+
+                const youtubeId = getYouTubeId(videoUrl);
+
+                if (youtubeId) {
+                    // Se o script do YouTube ainda não foi adicionado à página, adiciona
+                    if (!window.YT) {
+                        const tag = document.createElement('script');
+                        tag.src = "https://www.youtube.com/iframe_api";
+                        const firstScriptTag = document.getElementsByTagName('script')[0];
+                        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+                        // Define o callback que o YouTube vai chamar automaticamente ao carregar
+                        window.onYouTubeIframeAPIReady = function () {
+                            inicializarPlayerYouTube(youtubeId);
+                        };
+                    } else {
+                        // Se a API já existir (segunda vez que usam um link do YT), só troca o vídeo
+                        inicializarPlayerYouTube(youtubeId);
+                    }
+
                     modal.classList.add('hidden');
-                    sendToAllClients({ type: 'video-changed', url: videoUrl });
+                    sendToAllClients({ type: 'video-changed', provider: 'youtube', id: youtubeId });
+                    return;
                 }
+
+                // Comportamento para vídeos normais/diretos (Ex: .mp4, .webm)
+                video.src = videoUrl;
+                modal.classList.add('hidden');
+                sendToAllClients({ type: 'video-changed', provider: 'direct', url: videoUrl });
             });
 
             // ==========================================
@@ -772,15 +928,59 @@
                     return;
                 }
 
-                if (isHost) {
-                    if (target.closest('#url-btn')) {
-                        modal.classList.remove('hidden');
-                        return;
-                    }
+                if (target.closest('.full-screen-btn')) {
+                    const header = document.querySelector('header');
+                    const controlsRow = document.querySelector('.controls-row');
+
+                    header.classList.toggle('hidden');
+                    controlsRow.classList.toggle('hidden');
+                    return;
                 }
 
                 if (target.closest('.modal-overlay .close-btn')) {
                     modal.classList.add('hidden');
+                    return;
+                }
+
+                if (!isHost) return;
+
+                if (target.closest('.play-pause-btn')) {
+                    if (!video.src) return;
+                    video.paused ? video.play() : video.pause();
+                    return;
+                }
+
+                if (target.closest('.pip-btn')) {
+                    if (!video.src) return;
+                    try {
+                        // 1. Método Padrão (Android, Chrome, Firefox, Safari de Desktop)
+                        if (video.requestPictureInPicture) {
+                            if (document.pictureInPictureElement) {
+                                await document.exitPictureInPicture();
+                            } else {
+                                await video.requestPictureInPicture();
+                            }
+                        }
+                        // 2. Método do iPhone/iOS (Safari)
+                        else if (video.webkitSupportsPresentationMode && typeof video.webkitSetPresentationMode === "function") {
+                            // Verifica o modo atual e alterna
+                            if (video.webkitPresentationMode === "picture-in-picture") {
+                                video.webkitSetPresentationMode("inline");
+                            } else {
+                                video.webkitSetPresentationMode("picture-in-picture");
+                            }
+                        }
+                        else {
+                            console.log("PiP não é suportado neste navegador.");
+                        }
+                    } catch (error) {
+                        console.error("Erro ao alternar o PiP:", error);
+                    }
+                    return;
+                }
+
+                if (target.closest('#url-btn')) {
+                    modal.classList.remove('hidden');
                     return;
                 }
             });
@@ -795,8 +995,51 @@
                 });
             }
 
-            video.addEventListener('play', sendVideoState);
-            video.addEventListener('pause', sendVideoState);
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            // 1. Configura o máximo da barra quando o metadado carregar
+            video.addEventListener('loadedmetadata', () => {
+                duration.textContent = formatTime(video.duration);
+                progressRange.max = video.duration; // O valor máximo é a duração total em segundos
+            });
+
+            // 2. Atualiza a posição da barra conforme o vídeo toca
+            video.addEventListener('timeupdate', () => {
+                currentTime.textContent = formatTime(video.currentTime);
+
+                // Só atualiza a barra se o usuário não estiver arrastando ela naquele momento
+                if (!progressRange.classList.contains('seeking')) {
+                    progressRange.value = video.currentTime;
+                }
+            });
+
+            // 3. Atualiza o tempo do vídeo quando o usuário arrasta ou clica na barra
+            progressRange.addEventListener('input', () => {
+                progressRange.classList.add('seeking'); // Trava a atualização do timeupdate pra não dar conflito
+                video.currentTime = progressRange.value;
+            });
+
+            // Remove a trava quando o usuário solta o clique/toque
+            progressRange.addEventListener('change', () => {
+                progressRange.classList.remove('seeking');
+            });
+
+            video.addEventListener('play', () => {
+                playIcons.forEach(icon => icon.classList.add('hidden'));
+                pauseIcons.forEach(icon => icon.classList.remove('hidden'));
+                sendVideoState();
+            });
+
+            video.addEventListener('pause', () => {
+                playIcons.forEach(icon => icon.classList.remove('hidden'));
+                pauseIcons.forEach(icon => icon.classList.add('hidden'));
+                sendVideoState();
+            });
+
             video.addEventListener('seeked', sendVideoState);
 
             // --- 1. FUNÇÕES AUXILIARES DE INICIALIZAÇÃO ---
@@ -882,8 +1125,10 @@
                 try {
                     peer = await createPeer(roomId);
                     isHost = true;
+                    onlineCountEl.textContent = `1 Online`;
                     statusBadge.classList.remove('hidden');
-                    video.controls = true;
+                    playPauseBtn.classList.remove('hidden');
+                    progressRange.classList.remove('hidden');
                     urlBtn.disabled = false;
                     fileInput.disabled = false;
                     console.log(`Sala aberta. Aguardando clientes...`);
@@ -892,14 +1137,14 @@
 
                         const now = Date.now();
 
-                        clientsConn = clientsConn.filter(client => {
+                        clientsConn = clientsConn.filter(clientConn => {
 
-                            if (now - (client.lastPing || 0) > 30000) {
+                            if (now - (clientConn.lastPing || 0) > 30000) {
 
-                                console.log("Cliente morto:", client.peer);
+                                console.log("Cliente morto:", clientConn.peer);
 
                                 try {
-                                    client.close();
+                                    clientConn.close();
                                 } catch { }
 
                                 return false;
@@ -970,6 +1215,11 @@
             function setupDataFlow(connection) {
                 connection.on('data', (data) => {
                     if (!data?.type) return;
+
+                    if (data.type === 'ping') {
+                        connection.lastPing = Date.now();
+                        return;
+                    }
 
                     // ==========================================
                     // RECEBIMENTO DE ARQUIVOS (MÉTODOS CLIENTE)
@@ -1053,11 +1303,6 @@
                     // Host não precisa sincronizar vídeo
                     if (isHost) {
                         if (syncWithHost) return;
-                    }
-
-                    if (data.type === 'ping') {
-                        connection.lastPing = Date.now();
-                        return;
                     }
 
                     // ===========================
@@ -1149,6 +1394,52 @@
                         clientConn.send(data);
                     }
                 });
+            }
+
+            // 3. Esta função cria o <iframe> (e o player) após o download do código da API
+            var player;
+            // Função para criar ou atualizar o player do YT
+            function inicializarPlayerYouTube(videoId) {
+                // Aqui dentro você usa o construtor: new YT.Player('id-do-conteiner', { videoId: videoId })
+                if (player) {
+                    player.destroy(); // Destroi o player antigo se existir
+                }
+
+                player = new YT.Player('main-video', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: {
+                        'playsinline': 1,
+                        'controls': 0
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange
+                    }
+                });
+            }
+
+            // 4. A API chamará esta função quando o player estiver pronto
+            function onPlayerReady(event) {
+                console.log("O player está pronto para ser usado!");
+            }
+
+            // 5. A API chama esta função sempre que o estado do player muda
+            // (ex: começou a tocar, pausou, terminou)
+            function onPlayerStateChange(event) {
+                if (event.data == YT.PlayerState.PLAYING) {
+                    console.log("O vídeo está rodando...");
+                } else if (event.data == YT.PlayerState.ENDED) {
+                    console.log("O vídeo terminou!");
+                }
+            }
+
+            // Função auxiliar para extrair o ID do YouTube de forma segura
+            function getYouTubeId(url) {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
             }
         });
     </script>
