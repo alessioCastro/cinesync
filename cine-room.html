@@ -564,7 +564,7 @@
             <div class="controls-row">
                 <div class="controls-right">
                     <div class="btn-group">
-                        <button class="text-btn" id="url-btn" disabled>
+                        <button class="text-btn" id="url-btn">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -580,7 +580,7 @@
                                 <circle cx="12" cy="13" r="4" />
                             </svg>
                             ARQUIVO
-                            <input type="file" id="file-input" class="hidden" accept="video/*" disabled>
+                            <input type="file" id="file-input" class="hidden" accept="video/*">
                         </label>
                     </div>
                 </div>
@@ -679,6 +679,7 @@
             // ==========================================
             // 1. SELETORES E VARIÁVEIS GLOBAIS
             // ==========================================
+            const header = document.querySelector('header');
             const roomIdElement = document.getElementById('room-id');
             const video = document.getElementById('main-video');
             const playerControls = document.querySelector('.player-controls');
@@ -688,6 +689,7 @@
             const currentTime = document.getElementById('current-time');
             const duration = document.getElementById('duration');
             const progressRange = document.getElementById('progressRange');
+            const controlsRow = document.querySelector('.controls-row');
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
             const messagesContainer = document.getElementById('messages');
@@ -766,6 +768,7 @@
 
             if (mode === "client") {
                 usernameModal.classList.remove('hidden');
+                controlsRow.remove();
 
                 if (username !== 'Anônimo') {
                     document.getElementById('username').value = username;
@@ -929,11 +932,10 @@
                 }
 
                 if (target.closest('.full-screen-btn')) {
-                    const header = document.querySelector('header');
-                    const controlsRow = document.querySelector('.controls-row');
-
                     header.classList.toggle('hidden');
-                    controlsRow.classList.toggle('hidden');
+                    if (controlsRow) {
+                        controlsRow.classList.toggle('hidden');
+                    }
                     return;
                 }
 
@@ -1129,8 +1131,6 @@
                     statusBadge.classList.remove('hidden');
                     playPauseBtn.classList.remove('hidden');
                     progressRange.classList.remove('hidden');
-                    urlBtn.disabled = false;
-                    fileInput.disabled = false;
                     console.log(`Sala aberta. Aguardando clientes...`);
 
                     setInterval(() => {
