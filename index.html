@@ -3,25 +3,27 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CineSync - Sala de Cinema Virtual</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-
     <header>
         <div class="logo-container">
-            <div class="logo-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                    <line x1="8" y1="21" x2="16" y2="21" />
-                    <line x1="12" y1="17" x2="12" y2="21" />
-                </svg>
-            </div>
-            <h1 class="logo-text">CineSync</h1>
+            <svg class="logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            <svg class="sync-icon" width="20" height="20" viewBox="0 0 52 52" fill="currentColor">
+                <path
+                    d="M47.9 29.3c0-.8-.7-1.5-1.5-1.5h-3.5c-.8 0-1.4.6-1.4 1.4 0 .2 0 .5-.1.7-.3 1.3-.8 2.5-1.5 3.7-2.8 4.9-7.7 7.6-12.9 7.6-4 0-7.8-1.6-10.6-4.4-.5-.4-.9-.9-1.2-1.4-.3-.8.4-1.2 1.3-1.2h7c.8 0 1.5-.7 1.5-1.5v-3.1c0-.8-.6-1.4-1.4-1.4H5.3c-.7 0-1.3.6-1.3 1.3v18.2c.1.8.8 1.5 1.6 1.5h3c.8 0 1.5-.7 1.5-1.5v-7c0-.9.5-1.3 1.2-.7.3.4.6.7 1 1 5 5 12 7.1 19.2 5.7 2.5-.5 4.9-1.5 7-2.9 5.2-3.4 8.5-8.6 9.4-14.3zM4.1 22.7c0 .8.7 1.5 1.5 1.5h3.5c.8 0 1.4-.6 1.4-1.4 0-.2 0-.5.1-.7.3-1.3.8-2.5 1.5-3.7 2.8-4.9 7.7-7.6 12.9-7.6 4 0 7.8 1.6 10.6 4.4.5.4.9.9 1.2 1.4.3.8-.4 1.2-1.3 1.2h-7c-.8 0-1.5.7-1.5 1.5v3.1c0 .8.6 1.4 1.4 1.4h18.3c.7 0 1.3-.6 1.3-1.3V4.3c-.1-.8-.8-1.5-1.6-1.5h-3c-.8 0-1.5.7-1.5 1.5v7c0 .9-.5 1.3-1.2.7-.3-.4-.6-.7-1-1-5-5-12-7.1-19.2-5.7-2.5.5-4.9 1.5-7 2.9-5.2 3.4-8.5 8.6-9.4 14.3z" />
+            </svg>
         </div>
+        <h1 class="logo-text">CineSync</h1>
     </header>
 
     <main>
@@ -29,7 +31,7 @@
             <div class="container">
                 <h2>Criar sala</h2>
                 <form id="create-room">
-                    <label for="create-username">Seu nome</label>
+
                     <input type="text" id="create-username" placeholder="Digite seu nome" required>
                     <button type="submit">Criar</button>
                 </form>
@@ -38,13 +40,45 @@
             <div class="container">
                 <h2>Entrar em uma sala</h2>
                 <form id="join-room">
-                    <label for="room-id">ID da sala</label>
+
                     <input type="text" id="room-id" placeholder="Digite o ID da sala" required>
                     <button type="submit">Entrar</button>
                 </form>
             </div>
+
+            <button class="nav-arrow up hidden">↑</button>
+            <button class="nav-arrow down hidden">↓</button>
         </div>
     </main>
+
+    <div class="bg-container">
+        <!-- Ondas Vetoriais em SVG -->
+        <div class="wave-container">
+            <svg class="waves" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#e50914" />
+                        <stop offset="25%" stop-color="#e5091471" />
+                        <stop offset="50%" stop-color="#6365f175" />
+                        <stop offset="100%" stop-color="#6366F1" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Linhas superiores cruzando para baixo -->
+                <path class="wave-path" d="M -100,100 C 300,350 900,50 1300,300" />
+                <path class="wave-path" d="M -100,120 C 320,330 880,70 1300,280" />
+                <path class="wave-path" d="M -100,140 C 340,310 860,90 1300,260" />
+
+                <!-- Linhas inferiores cruzando para cima -->
+                <path class="wave-path" d="M -100,300 C 300,50 900,350 1300,100" />
+                <path class="wave-path" d="M -100,280 C 320,70 880,330 1300,120" />
+                <path class="wave-path" d="M -100,260 C 340,90 860,310 1300,140" />
+            </svg>
+        </div>
+
+        <div class="glow-red"></div>
+        <div class="glow-purple"></div>
+    </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
@@ -82,6 +116,92 @@
                     roomId += characters.charAt(Math.floor(Math.random() * characters.length));
                 }
                 return roomId;
+            }
+
+            const containersWrapper = document.querySelector('.containers-wrapper');
+            const arrowUp = document.querySelector('.nav-arrow.up');
+            const arrowDown = document.querySelector('.nav-arrow.down');
+
+            const syncIcon = document.querySelector('.sync-icon');
+            const waveContainer = document.querySelector('.wave-container');
+            const glowRed = document.querySelector('.glow-red');
+            const glowPurple = document.querySelector('.glow-purple');
+
+            let lastChange;
+
+            // Funções auxiliares para evitar repetição de código
+            function setRedTheme() {
+                if (lastChange === 'red') return;
+                syncIcon.classList.remove('blue');
+                waveContainer.classList.remove('blue');
+                waveContainer.classList.add('red');
+                glowRed.classList.remove('hidden');
+                glowPurple.classList.add('hidden');
+                arrowDown.classList.remove('hidden');
+                arrowUp.classList.add('hidden');
+                lastChange = 'red';
+            }
+
+            function setBlueTheme() {
+                if (lastChange === 'blue') return;
+                syncIcon.classList.add('blue');
+                waveContainer.classList.remove('red');
+                waveContainer.classList.add('blue');
+                glowRed.classList.add('hidden');
+                glowPurple.classList.remove('hidden');
+                arrowUp.classList.remove('hidden');
+                arrowDown.classList.add('hidden');
+                lastChange = 'blue';
+            }
+
+            function updateArrows() {
+                if (window.innerWidth > 900) return;
+
+                const scrollTop = containersWrapper.scrollTop;
+                const maxScroll = containersWrapper.scrollHeight - containersWrapper.clientHeight;
+
+                if (maxScroll <= 0) return;
+
+                // Define o ponto de virada na metade do scroll total
+                const middlePoint = maxScroll / 2;
+
+                // O 'else' garante que NUNCA os dois blocos rodem no mesmo evento de scroll
+                if (scrollTop >= middlePoint) {
+                    setBlueTheme();
+                } else {
+                    setRedTheme();
+                }
+            }
+
+            // Escuta o evento de rolagem
+            containersWrapper.addEventListener('scroll', updateArrows);
+
+            // Navegação ao clicar nas setas (usando scrollTo para posições fixas)
+            arrowUp.addEventListener('click', () => {
+                containersWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            arrowDown.addEventListener('click', () => {
+                containersWrapper.scrollTo({ top: containersWrapper.scrollHeight, behavior: 'smooth' });
+            });
+
+            // Redimensionamento da janela
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 900) {
+                    syncIcon.classList.remove('blue');
+                    waveContainer.classList.remove('red', 'blue');
+                    glowRed.classList.remove('hidden');
+                    glowPurple.classList.remove('hidden');
+                    arrowUp.classList.add('hidden');
+                    arrowDown.classList.add('hidden');
+                    return;
+                }
+                updateArrows();
+            });
+
+            // Inicialização mobile
+            if (window.innerWidth <= 900) {
+                setRedTheme();
             }
         });
     </script>
