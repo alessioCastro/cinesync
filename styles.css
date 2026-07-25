@@ -1,11 +1,12 @@
 :root {
-    --bg-main: #0a0a0a;
+    --bg-main: #101218;
     --bg-sidebar: #0f0f0f;
-    --accent: #dc2626;
+    --accent: #E50914;
     --accent-hover: #b91c1c;
+    --second-accent: #6366F1;
     --text-main: #f4f4f5;
     --text-dim: #a1a1aa;
-    --border: rgba(255, 255, 255, 0.05);
+    --border: #252a2e;
 }
 
 * {
@@ -15,52 +16,52 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+html,
+body {
+    touch-action: none;
+}
+
 body {
     background-color: var(--bg-main);
     color: var(--text-main);
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100dvh;
+    padding: 20px;
+    padding-top: 50px;
     display: flex;
     flex-direction: column;
+    scroll-behavior: smooth;
 }
 
 /* Header */
 header {
-    padding: 1rem 1.5rem;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    background: linear-gradient(to bottom, #000, transparent);
-    z-index: 100;
 }
 
 .logo-container {
+    position: relative;
+    width: 70px;
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 0.75rem;
 }
 
 .logo-icon {
-    background: var(--accent);
-    padding: 0.5rem;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    margin-right: 19px;
 }
 
-.logo-text h1 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    line-height: 1;
+.sync-icon {
+    position: absolute;
+    bottom: 0;
+    right: 9px;
+    fill: var(--accent);
 }
 
-.logo-text p {
-    font-size: 0.6rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 4px;
+.logo-text {
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 .header-actions {
@@ -108,25 +109,65 @@ header {
 /* Main Content */
 main {
     flex: 1;
-    padding: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    position: relative;
+}
+
+/* Estilização das setas de navegação */
+.nav-arrow {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.nav-arrow.up {
+    top: 100px;
+}
+
+.nav-arrow.down {
+    bottom: 20px;
 }
 
 .containers-wrapper {
+    width: 100%;
     display: flex;
-    flex-wrap: wrap;
     justify-content: center;
-    gap: 5rem;
+    gap: 35%;
+    overflow-y: auto;
 }
 
 .container {
-    padding: 20px;
+    position: relative;
     border-radius: 20px;
-    background: rgba(0, 0, 0, 0.1);
+    border: 2px solid var(--border);
+    padding: 20px;
+    flex: 1;
+    max-width: 300px;
+    background: #1A1D26;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.2rem;
+}
+
+.container h2 {
+    margin-left: 5px;
+    font-weight: 600;
+}
+
+.container button {
+    font-weight: 600;
 }
 
 .btn-group {
@@ -135,7 +176,7 @@ main {
     padding: 4px;
     border-radius: 8px;
     display: flex;
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
 }
 
 .text-btn {
@@ -160,7 +201,7 @@ main {
 .chat-sidebar {
     width: 380px;
     background: var(--bg-sidebar);
-    border-left: 1px solid var(--border);
+    border-left: 2px solid var(--border);
     display: flex;
     flex-direction: column;
     transition: transform 0.3s ease;
@@ -168,7 +209,7 @@ main {
 
 .chat-header {
     padding: 1.5rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -220,7 +261,7 @@ main {
 
 .chat-input-area {
     padding: 1.5rem;
-    border-top: 1px solid var(--border);
+    border-top: 2px solid var(--border);
     background: var(--bg-main);
 }
 
@@ -230,8 +271,8 @@ main {
 
 input[type="text"] {
     width: 100%;
-    background: #18181b;
-    border: 1px solid var(--border);
+    background: var(--bg-main);
+    border: 2px solid var(--border);
     padding: 0.8rem 3rem 0.8rem 1rem;
     border-radius: 12px;
     color: white;
@@ -240,6 +281,10 @@ input[type="text"] {
 
 input[type="text"]:focus {
     outline: 2px solid rgba(220, 38, 38, 0.5);
+}
+
+form#join-room input[type="text"]:focus {
+    outline: 2px solid rgba(50, 38, 220, 0.5);
 }
 
 .send-btn {
@@ -273,7 +318,7 @@ input[type="text"]:focus {
 .modal-content {
     position: relative;
     background: #18181b;
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     padding: 1rem;
     border-radius: 12px;
     width: 50%;
@@ -285,11 +330,11 @@ input[type="text"]:focus {
 form {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1.2rem;
 }
 
 form input {
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     background: #18181b;
     padding: 1rem;
     border-radius: 12px;
@@ -297,14 +342,23 @@ form input {
     font-size: 0.9rem;
 }
 
+form#join-room input {
+    border: none;
+    border-bottom: 2px solid var(--border);
+}
+
 form button {
-    border: 1px solid var(--border);
+    border: none;
     background: var(--accent);
     padding: 0.8rem;
     border-radius: 12px;
     color: white;
     font-size: 0.9rem;
     cursor: pointer;
+}
+
+form#join-room button {
+    background: var(--second-accent);
 }
 
 /* Mobile Adjustments */
@@ -343,12 +397,170 @@ form button {
         left: 50%;
         transform: translateX(-50%);
         background: rgba(0, 0, 0, 0.8);
-        border: 1px solid var(--border);
+        border: 2px solid var(--border);
         padding: 0.5rem 1rem;
         border-radius: 99px;
         font-size: 0.7rem;
         font-weight: 700;
         z-index: 20;
         cursor: pointer;
+    }
+}
+
+@media (max-width: 900px) {
+
+    /* 1. Trava o body e o main para não rolarem a tela inteira */
+    html,
+    body {
+        height: 100%;
+        overflow: hidden;
+        /* Corta o scroll da página principal */
+    }
+
+    main {
+        height: calc(100dvh - 120px);
+        /* Ocupa a tela descontando o header */
+        overflow: hidden;
+    }
+
+    /* 2. Transforma o wrapper na ÚNICA área de scroll */
+    .containers-wrapper {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+
+        overflow-y: scroll;
+
+        scroll-snap-type: y mandatory;
+
+        scrollbar-width: none;
+    }
+
+    /* 3. Ajusta os cards para centralizarem no salto */
+    .container {
+        margin: 60% 0;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+    }
+
+    .container:last-of-type {
+        margin-bottom: 60%;
+    }
+}
+
+.sync-icon.blue {
+    fill: var(--second-accent);
+}
+
+.bg-container {
+    z-index: -1;
+    position: absolute;
+    inset: 0;
+    padding-top: 30px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* --- ILUMINAÇÃO DE FUNDO (GLOW) --- */
+.glow-red {
+    z-index: -1;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 30%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(229, 9, 20, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+.glow-purple {
+    z-index: -2;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 70%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+/* --- CONTAINER DAS ONDAS SVG --- */
+.wave-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: -3;
+}
+
+svg.waves {
+    width: 100%;
+    height: 100%;
+}
+
+/* --- ANIMAÇÃO DAS LINHAS --- */
+.wave-path {
+    fill: none;
+    stroke: url(#wave-gradient);
+    stroke-width: 1.2;
+    opacity: 0.5;
+    transform-origin: center;
+    animation: floatWave 8s ease-in-out infinite alternate;
+}
+
+.wave-container.red .wave-path {
+    stroke: #e50914;
+}
+
+.wave-container.blue .wave-path {
+    stroke: #6366F1;
+}
+
+/* Variações de tempo e opacidade para efeito tridimensional */
+.wave-path:nth-child(1) {
+    animation-delay: 0s;
+    opacity: 0.7;
+}
+
+.wave-path:nth-child(2) {
+    animation-delay: -1.5s;
+    opacity: 0.4;
+}
+
+.wave-path:nth-child(3) {
+    animation-delay: -3s;
+    opacity: 0.8;
+}
+
+.wave-path:nth-child(4) {
+    animation-delay: -4.5s;
+    opacity: 0.3;
+}
+
+.wave-path:nth-child(5) {
+    animation-delay: -6s;
+    opacity: 0.6;
+}
+
+.wave-path:nth-child(6) {
+    animation-delay: -7.5s;
+    opacity: 0.5;
+}
+
+@keyframes floatWave {
+    0% {
+        transform: translateY(-12px) scaleY(0.92) rotate(0deg);
+    }
+
+    100% {
+        transform: translateY(12px) scaleY(1.08) rotate(-1deg);
     }
 }
