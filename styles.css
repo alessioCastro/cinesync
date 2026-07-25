@@ -132,11 +132,11 @@ main {
 }
 
 .nav-arrow.up {
-    top: 100px;
+    top: 120px;
 }
 
 .nav-arrow.down {
-    bottom: 20px;
+    bottom: 10px;
 }
 
 .containers-wrapper {
@@ -153,7 +153,7 @@ main {
     border: 2px solid var(--border);
     padding: 20px;
     flex: 1;
-    max-width: 300px;
+    max-width: 350px;
     background: #1A1D26;
     display: flex;
     flex-direction: column;
@@ -162,12 +162,12 @@ main {
 }
 
 .container h2 {
-    margin-left: 5px;
     font-weight: 600;
 }
 
 .container button {
     font-weight: 600;
+    font-size: 20px;
 }
 
 .btn-group {
@@ -276,14 +276,14 @@ input[type="text"] {
     padding: 0.8rem 3rem 0.8rem 1rem;
     border-radius: 12px;
     color: white;
-    font-size: 0.9rem;
+    font-size: 20px;
 }
 
 input[type="text"]:focus {
     outline: 2px solid rgba(220, 38, 38, 0.5);
 }
 
-form#join-room input[type="text"]:focus {
+#join-room form input[type="text"]:focus {
     outline: 2px solid rgba(50, 38, 220, 0.5);
 }
 
@@ -339,12 +339,15 @@ form input {
     padding: 1rem;
     border-radius: 12px;
     color: white;
-    font-size: 0.9rem;
+    font-size: 20px;
 }
 
-form#join-room input {
+#join-room form input {
+    border-radius: 0;
     border: none;
     border-bottom: 2px solid var(--border);
+    padding: 0;
+    background: none;
 }
 
 form button {
@@ -353,11 +356,11 @@ form button {
     padding: 0.8rem;
     border-radius: 12px;
     color: white;
-    font-size: 0.9rem;
+    font-size: 20px;
     cursor: pointer;
 }
 
-form#join-room button {
+#join-room form button {
     background: var(--second-accent);
 }
 
@@ -407,7 +410,13 @@ form#join-room button {
     }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1120px) {
+    .containers-wrapper {
+        gap: 15%;
+    }
+}
+
+@media (max-width: 700px) {
 
     /* 1. Trava o body e o main para não rolarem a tela inteira */
     html,
@@ -441,6 +450,8 @@ form#join-room button {
     /* 3. Ajusta os cards para centralizarem no salto */
     .container {
         margin: 60% 0;
+        /*width: 100%;*/
+        max-width: initial;
         scroll-snap-align: center;
         scroll-snap-stop: always;
     }
@@ -464,7 +475,8 @@ form#join-room button {
 }
 
 /* --- ILUMINAÇÃO DE FUNDO (GLOW) --- */
-.glow-red {
+.glow-red,
+.glow-purple {
     z-index: -1;
     position: absolute;
     width: 100%;
@@ -474,20 +486,21 @@ form#join-room button {
     transform: translate(-50%, -50%);
     background: radial-gradient(circle, rgba(229, 9, 20, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
     filter: blur(40px);
+    opacity: 0;
     pointer-events: none;
+    /* Começa invisível */
+    animation: appearGlow 0.8s forwards ease-out;
 }
 
 .glow-purple {
     z-index: -2;
-    position: absolute;
-    width: 100%;
-    height: 100%;
     left: 70%;
-    top: 50%;
-    transform: translate(-50%, -50%);
     background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
-    filter: blur(40px);
-    pointer-events: none;
+}
+
+.glow-red.full,
+.glow-purple.full {
+    left: 50%;
 }
 
 /* --- CONTAINER DAS ONDAS SVG --- */
@@ -563,4 +576,46 @@ svg.waves {
     100% {
         transform: translateY(12px) scaleY(1.08) rotate(-1deg);
     }
+}
+
+/* Animação de aparecimento */
+@keyframes appearGlow {
+    to {
+        opacity: 1;
+    }
+}
+
+.btn-create {
+    /* Gradiente derivado do vermelho base até um tom mais denso */
+    background: linear-gradient(180deg, #ff2a35 0%, var(--accent) 100%);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.35),
+        0 8px 25px -4px rgba(229, 9, 20, 0.65);
+}
+
+.btn-create:hover {
+    background: linear-gradient(180deg, #ff3d47 0%, #ed111c 100%);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.5),
+        0 10px 30px -2px rgba(229, 9, 20, 0.85);
+}
+
+.btn-join {
+    /* Gradiente derivado do roxo/azul iluminado até a cor base */
+    background: linear-gradient(180deg, #787bff 0%, var(--second-accent) 100%);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.35),
+        0 8px 25px -4px rgba(99, 102, 241, 0.65);
+}
+
+.btn-join:hover {
+    background: linear-gradient(180deg, #878aff 0%, #6f72f8 100%);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.5),
+        0 10px 30px -2px rgba(99, 102, 241, 0.85);
+}
+
+.btn-create:active,
+.btn-join:active {
+    box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.5);
 }
