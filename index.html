@@ -12,7 +12,7 @@
 <body>
     <header>
         <div class="logo-container">
-            <svg class="logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            <svg class="logo-icon" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                 <line x1="8" y1="21" x2="16" y2="21" />
@@ -33,16 +33,16 @@
                 <form id="create-room">
 
                     <input type="text" id="create-username" placeholder="Digite seu nome" required>
-                    <button type="submit">Criar</button>
+                    <button type="submit" class="btn-create">Criar</button>
                 </form>
             </div>
 
-            <div class="container">
+            <div id="join-room" class="container">
                 <h2>Entrar em uma sala</h2>
-                <form id="join-room">
-
-                    <input type="text" id="room-id" placeholder="Digite o ID da sala" required>
-                    <button type="submit">Entrar</button>
+                <form>
+                    <label for="room-id">ID da sala</label>
+                    <input type="text" id="room-id" placeholder="6 caracteres" required>
+                    <button type="submit" class="btn-join">Entrar</button>
                 </form>
             </div>
 
@@ -137,6 +137,8 @@
                 waveContainer.classList.add('red');
                 glowRed.classList.remove('hidden');
                 glowPurple.classList.add('hidden');
+                glowRed.classList.add('full');
+                glowPurple.classList.add('full');
                 arrowDown.classList.remove('hidden');
                 arrowUp.classList.add('hidden');
                 lastChange = 'red';
@@ -149,13 +151,15 @@
                 waveContainer.classList.add('blue');
                 glowRed.classList.add('hidden');
                 glowPurple.classList.remove('hidden');
+                glowRed.classList.add('full');
+                glowPurple.classList.add('full');
                 arrowUp.classList.remove('hidden');
                 arrowDown.classList.add('hidden');
                 lastChange = 'blue';
             }
 
             function updateArrows() {
-                if (window.innerWidth > 900) return;
+                if (window.innerWidth > 700) return;
 
                 const scrollTop = containersWrapper.scrollTop;
                 const maxScroll = containersWrapper.scrollHeight - containersWrapper.clientHeight;
@@ -187,20 +191,23 @@
 
             // Redimensionamento da janela
             window.addEventListener('resize', () => {
-                if (window.innerWidth > 900) {
+                if (window.innerWidth > 700) {
                     syncIcon.classList.remove('blue');
                     waveContainer.classList.remove('red', 'blue');
                     glowRed.classList.remove('hidden');
                     glowPurple.classList.remove('hidden');
+                    glowRed.classList.remove('full');
+                    glowPurple.classList.remove('full');
                     arrowUp.classList.add('hidden');
                     arrowDown.classList.add('hidden');
+                    lastChange = 'red and blue';
                     return;
                 }
                 updateArrows();
             });
 
             // Inicialização mobile
-            if (window.innerWidth <= 900) {
+            if (window.innerWidth <= 700) {
                 setRedTheme();
             }
         });
