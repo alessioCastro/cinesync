@@ -28,18 +28,18 @@
 
     <main>
         <div class="containers-wrapper">
-            <div class="container">
+            <div class="container create-room">
                 <h2>Criar sala</h2>
-                <form id="create-room">
+                <form id="create-room-form">
 
                     <input type="text" id="create-username" placeholder="Digite seu nome" required>
                     <button type="submit" class="btn-create">Criar</button>
                 </form>
             </div>
 
-            <div id="join-room" class="container">
+            <div class="container join-room">
                 <h2>Entrar em uma sala</h2>
-                <form>
+                <form id="join-room-form">
                     <label for="room-id">ID da sala</label>
                     <input type="text" id="room-id" placeholder="6 caracteres" required>
                     <button type="submit" class="btn-join">Entrar</button>
@@ -92,7 +92,7 @@
                     // Pegamos o ID do formulário atual que disparou o evento
                     const formId = e.target.id;
 
-                    if (formId === "create-room") {
+                    if (formId === "create-room-form") {
                         const username = document.getElementById('create-username').value.trim();
                         if (!username) return alert('Digite seu nome');
 
@@ -100,7 +100,7 @@
                         sessionStorage.setItem('username', username);
                         location.href = `cine-room.html?roomId=${roomId}&mode=host`;
 
-                    } else if (formId === "join-room") {
+                    } else if (formId === "join-room-form") {
                         const roomId = document.getElementById('room-id').value.trim();
                         if (!roomId) return alert('Digite seu nome e ID da sala');
                         location.href = `cine-room.html?roomId=${roomId}`;
