@@ -283,7 +283,7 @@ input[type="text"]:focus {
     outline: 2px solid rgba(220, 38, 38, 0.5);
 }
 
-#join-room form input[type="text"]:focus {
+.join-room form input[type="text"]:focus {
     outline: 2px solid rgba(50, 38, 220, 0.5);
 }
 
@@ -342,7 +342,7 @@ form input {
     font-size: 20px;
 }
 
-#join-room form input {
+.join-room form input {
     border-radius: 0;
     border: none;
     border-bottom: 2px solid var(--border);
@@ -360,7 +360,7 @@ form button {
     cursor: pointer;
 }
 
-#join-room form button {
+.join-room form button {
     background: var(--second-accent);
 }
 
