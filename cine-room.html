@@ -1077,45 +1077,49 @@
                 if (target.closest('#mic-btn')) {
                     const micBtn = document.getElementById('mic-btn');
 
-                    // 1. Se ainda não pegou a permissão do microfone
+                    // Desbloqueia o sistema de áudio do Safari no iOS no primeiro clique
+                    desbloquearAudioiOS();
+
                     if (!localStream) {
+                        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                            alert("No iOS, o microfone exige conexão HTTPS.");
+                            return;
+                        }
+
                         try {
-                            localStream = await navigator.mediaDevices.getUserMedia({
-                                audio: {
-                                    echoCancellation: true,
-                                    noiseSuppression: true,
-                                    autoGainControl: true
-                                }
-                            });
+                            // Tenta pegar áudio (com fallback para iOS)
+                            try {
+                                localStream = await navigator.mediaDevices.getUserMedia({
+                                    audio: { echoCancellation: true, noiseSuppression: true }
+                                });
+                            } catch (err) {
+                                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            }
 
                             micBtn.classList.add('active');
 
-                            // Conecta áudio com o Host (se for cliente) ou com todos os Clientes (se for Host)
-                            if (isHost) {
-                                clientsConn.forEach(c => {
-                                    const call = peer.call(c.peer, localStream);
+                            // LIGA PARA TODOS OS PEERS DA SALA (Full Mesh)
+                            const targetsToCall = isHost ? clientsConn.map(c => c.peer) : roomPeers;
+
+                            targetsToCall.forEach(peerId => {
+                                if (peerId !== peer.id) {
+                                    const call = peer.call(peerId, localStream);
                                     setupAudioCall(call);
-                                });
-                            } else if (conn) {
-                                const call = peer.call(conn.peer, localStream);
-                                setupAudioCall(call);
-                            }
+                                }
+                            });
+
                         } catch (error) {
-                            console.error('Acesso ao microfone negado ou erro:', error);
+                            console.error('Acesso ao microfone negado:', error);
+                            alert("Não foi possível acessar o microfone.");
                         }
                         return;
                     }
 
-                    // 2. Se já possui a stream, apenas alterna Mute / Unmute
+                    // Alternar Mute / Unmute
                     const audioTrack = localStream.getAudioTracks()[0];
                     if (audioTrack) {
                         audioTrack.enabled = !audioTrack.enabled;
-
-                        if (audioTrack.enabled) {
-                            micBtn.classList.add('active');
-                        } else {
-                            micBtn.classList.remove('active');
-                        }
+                        micBtn.classList.toggle('active', audioTrack.enabled);
                     }
                     return;
                 }
@@ -1257,6 +1261,18 @@
                 });
             }
 
+            // Função para 'acordar' o elemento de áudio no iOS
+            function desbloquearAudioiOS() {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }
+
+            // Chame esse desbloqueio também na troca de modais ou qualquer clique inicial do usuário
+            document.body.addEventListener('touchstart', desbloquearAudioiOS, { once: true });
+            document.body.addEventListener('click', desbloquearAudioiOS, { once: true });
+
             function setupAudioCall(call) {
                 call.on('stream', (remoteStream) => {
                     let remoteAudio = document.getElementById(`audio-${call.peer}`);
@@ -1264,14 +1280,21 @@
                         remoteAudio = document.createElement('audio');
                         remoteAudio.id = `audio-${call.peer}`;
                         remoteAudio.autoplay = true;
+                        remoteAudio.setAttribute('playsinline', 'true'); // Essencial para iOS
                         document.body.appendChild(remoteAudio);
                     }
+
                     remoteAudio.srcObject = remoteStream;
 
-                    // Tenta dar play explicitamente para contornar políticas de Autoplay
-                    remoteAudio.play().catch(err => {
-                        console.warn("Autoplay de áudio bloqueado pelo navegador:", err);
-                    });
+                    // Força a reprodução contornando restrições do Safari
+                    const playPromise = remoteAudio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.warn("Autoplay de áudio retido pelo iOS. Tentando novamente...", error);
+                            // Caso o iOS segure o play, libera ao dar qualquer toque na tela
+                            document.addEventListener('click', () => remoteAudio.play(), { once: true });
+                        });
+                    }
                 });
             }
 
@@ -1296,8 +1319,13 @@
                 });
 
                 peer.on('call', (call) => {
-                    // Responde enviando a localStream se ela já existir, ou atende apenas escutando
-                    call.answer(localStream || undefined);
+                    desbloquearAudioiOS();
+                    // Responde com o microfone se estiver ativado, senão atende sem enviar áudio
+                    if (localStream && localStream.getAudioTracks()[0]?.enabled) {
+                        call.answer(localStream);
+                    } else {
+                        call.answer(); // Atende sem stream para poder receber o áudio do outro
+                    }
                     setupAudioCall(call);
                 });
 
@@ -1375,8 +1403,13 @@
                 });
 
                 peer.on('call', (call) => {
-                    // Responde enviando a localStream se ela já existir, ou atende apenas escutando
-                    call.answer(localStream || undefined);
+                    desbloquearAudioiOS();
+                    // Responde com o microfone se estiver ativado, senão atende sem enviar áudio
+                    if (localStream && localStream.getAudioTracks()[0]?.enabled) {
+                        call.answer(localStream);
+                    } else {
+                        call.answer(); // Atende sem stream para poder receber o áudio do outro
+                    }
                     setupAudioCall(call);
                 });
 
@@ -1517,6 +1550,22 @@
 
                     if (data.type === 'room-stats') {
                         onlineCountEl.textContent = `${data.total} Online`;
+
+                        if (data.peers) {
+                            // Atualiza a lista de peers da sala (removendo meu próprio ID)
+                            const previousPeers = [...roomPeers];
+                            roomPeers = data.peers.filter(id => id !== peer.id);
+
+                            // Se eu já estou com o microfone ligado e entrou alguém novo, ligo para ele automaticamente!
+                            if (localStream && localStream.getAudioTracks()[0]?.enabled) {
+                                roomPeers.forEach(peerId => {
+                                    if (!previousPeers.includes(peerId)) {
+                                        const call = peer.call(peerId, localStream);
+                                        setupAudioCall(call);
+                                    }
+                                });
+                            }
+                        }
                         return;
                     }
 
@@ -1582,11 +1631,17 @@
                 }
             }
 
+            // Variável global para armazenar todos os participantes da sala
+            let roomPeers = [];
+
             function updateRoomCount() {
                 clientsConn = clientsConn.filter(c => c.open);
                 const totalUsers = clientsConn.length + 1;
                 onlineCountEl.textContent = `${totalUsers} Online`;
-                sendToAllClients({ type: 'room-stats', total: totalUsers });
+
+                // Cria a lista com o ID do Host + ID de todos os clientes
+                const allPeers = [peer.id, ...clientsConn.map(c => c.peer)];
+                sendToAllClients({ type: 'room-stats', total: totalUsers, peers: allPeers });
             }
 
             function sendToAllClients(data) {
