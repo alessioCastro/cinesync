@@ -62,7 +62,7 @@
             position: absolute;
             bottom: 0;
             right: 9px;
-            fill: var(--accent);
+            fill: #fb343e;
         }
 
         .logo-text {
@@ -163,7 +163,7 @@
         }
 
         .player-controls {
-            z-index: 999;
+            z-index: 99;
             position: absolute;
             bottom: 0;
             padding-top: 10px;
@@ -182,16 +182,118 @@
             opacity: 1;
         }
 
-        .play-pause-btn {
-            border: none;
-            background: none;
+        /* OVERLAY DE PROGRESSO DE TRANSFERÊNCIA DE VÍDEO */
+        .transfer-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(6px);
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
+            z-index: 1000;
         }
 
-        .sound-btn {
+        .transfer-card {
+            background: #18181b;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 12px;
+            width: 85%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .transfer-card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: center;
+            word-break: break-all;
+        }
+
+        .progress-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #27272a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: width 0.15s ease-out;
+        }
+
+        /* Lista de Clientes para o Host */
+        .client-progress-section {
+            width: 100%;
+            border-top: 1px solid var(--border);
+            padding-top: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .client-progress-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .client-progress-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            max-height: 140px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .client-progress-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .completed-msg {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid #22c55e;
+            color: #22c55e;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-align: center;
+            width: 100%;
+            margin-top: 0.25rem;
+        }
+
+        .play-pause-btn,
+        .sound-btn,
+        .pip-btn,
+        .full-screen-btn {
             border: none;
             background: none;
             display: flex;
@@ -217,14 +319,12 @@
             outline: none;
         }
 
-        /* O "pino" que arrasta a barra */
         #progressRange::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
             width: 10px;
             height: 10px;
             background: white;
-            /* Azul estilo iOS, mude se quiser */
             cursor: pointer;
         }
 
@@ -238,34 +338,16 @@
 
         .pip-btn {
             margin-left: auto;
-            border: none;
-            background: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-
-        .full-screen-btn {
-            border: none;
-            background: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
         }
 
         .controls-row {
             width: 100%;
-            /* Garante que a linha ocupe toda a largura da seção */
             padding: 10px;
             display: flex;
             justify-content: flex-end;
-            /* Mantém os botões (URL/Arquivo) alinhados à direita */
             align-items: center;
         }
 
-        .controls-left,
         .controls-right {
             display: flex;
             align-items: center;
@@ -301,7 +383,7 @@
 
         /* Sidebar Chat */
         .chat-sidebar {
-            width: 380px;
+            width: 20%;
             background: var(--bg-sidebar);
             border-left: 1px solid var(--border);
             display: none;
@@ -469,7 +551,6 @@
             flex-direction: column;
         }
 
-        /* Mobile Adjustments */
         @media (max-width: 1024px) {
             .chat-sidebar {
                 position: absolute;
@@ -481,7 +562,7 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .room-id {
@@ -537,6 +618,36 @@
         <div class="left-column">
             <div class="player-section" id="player-container">
                 <video playsinline webkit-playsinline id="main-video"></video>
+
+                <!-- Overlay de Progresso da Transferência -->
+                <div class="transfer-overlay hidden" id="transfer-overlay">
+                    <div class="transfer-card">
+                        <h3 id="transfer-title">Transferindo arquivo...</h3>
+
+                        <!-- Progresso do Host/Local -->
+                        <div class="progress-group">
+                            <div class="progress-label">
+                                <span id="local-progress-title">Seu Envio (Host)</span>
+                                <span id="transfer-percent">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="transfer-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Clientes (Visível apenas para o Host) -->
+                        <div class="client-progress-section hidden" id="host-clients-progress">
+                            <div class="client-progress-title">Download dos Clientes:</div>
+                            <div class="client-progress-list" id="client-progress-list"></div>
+                        </div>
+
+                        <!-- Mensagem de Conclusão Total -->
+                        <div class="completed-msg hidden" id="all-completed-msg">
+                            ✓ Todos os clientes baixaram o vídeo!
+                        </div>
+                    </div>
+                </div>
+
                 <div class="player-controls">
                     <button class="play-pause-btn hidden" title="Play/Pause">
                         <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
@@ -562,7 +673,6 @@
                     <div class="time-display">
                         <span id="current-time">0:00</span> | <span id="duration">0:00</span>
                     </div>
-                    <!-- Barra de progresso nativa -->
                     <input class="hidden" type="range" id="progressRange" min="0" max="0" value="0" step="0.1">
                     <button class="pip-btn" title="Picture in Picture">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16">
@@ -643,7 +753,6 @@
         </aside>
     </main>
 
-    <!-- === NOTIFICACAO DE ULTIMA NOVA MENSAGEM COM PREVIA DO TEXTO === -->
     <div class="new-message-toast hidden" id="messageToast">
         <h2 id="toastUsername"></h2>
         <p id="toastMessage"></p>
@@ -697,9 +806,6 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // ==========================================
-            // 1. SELETORES E VARIÁVEIS GLOBAIS
-            // ==========================================
             const header = document.querySelector('header');
             const roomIdElement = document.getElementById('room-id');
             const video = document.getElementById('main-video');
@@ -716,8 +822,6 @@
             const chatInput = document.getElementById('chat-input');
             const messagesContainer = document.getElementById('messages');
             const sidebar = document.getElementById('sidebar');
-            const chatToggle = document.getElementById('chat-toggle-btn');
-            const closeChat = document.getElementById('close-chat-btn');
             const urlBtn = document.getElementById('url-btn');
             const fileInput = document.getElementById('file-input');
             const statusBadge = document.querySelector('.status-badge');
@@ -726,34 +830,42 @@
             const usernameModal = document.getElementById('username-modal');
             const errorModal = document.getElementById('error-modal');
             const errorMessage = document.getElementById('error-message');
-            const errorOkBtn = document.getElementById('error-ok');
             const videoForm = document.getElementById('video-form');
             const usernameForm = document.getElementById('username-form');
 
-            // Dados da Sessão
+            // Overlay de Progresso
+            const transferOverlay = document.getElementById('transfer-overlay');
+            const transferTitle = document.getElementById('transfer-title');
+            const localProgressTitle = document.getElementById('local-progress-title');
+            const transferBar = document.getElementById('transfer-bar');
+            const transferPercent = document.getElementById('transfer-percent');
+            const hostClientsProgressSection = document.getElementById('host-clients-progress');
+            const clientProgressList = document.getElementById('client-progress-list');
+            const allCompletedMsg = document.getElementById('all-completed-msg');
+
             const urlParams = new URLSearchParams(window.location.search);
             const roomId = urlParams.get('roomId');
             const mode = urlParams.get('mode') || 'client';
             let username = sessionStorage.getItem('username') || 'Anônimo';
 
             let isHost = false;
-            let syncWithClients = false;
             let syncWithHost = true;
 
             let peer = null;
-            let conn = null;          // Usado se formos Cliente (conexão com o Host)
-            let clientsConn = [];     // Usado se formos Host (conexão de dados com os Clientes)
-            let activeCalls = [];      // Armazena as chamadas de áudio ativas
-            let localStream = null;   // Armazena o stream do microfone local
+            let conn = null;
+            let clientsConn = [];
+            let activeCalls = [];
+            let localStream = null;
             let receivedChunks = [];
             let incomingMeta = null;
+            let receivedBytes = 0;
+            let clientProgressState = {}; // Guarda o progresso dos clientes para o Host
 
             if (roomId) {
                 roomIdElement.textContent = roomId;
                 document.getElementById('room-id').parentElement.classList.remove('hidden');
             }
 
-            // Função auxiliar para renderizar mensagens com segurança (Prevenção contra XSS)
             function appendMessage(sender, text) {
                 const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -766,7 +878,7 @@
 
                 const msgBubble = document.createElement('div');
                 msgBubble.className = 'msg-bubble';
-                msgBubble.textContent = text; // Protege contra scripts maliciosos
+                msgBubble.textContent = text;
 
                 messageDiv.appendChild(msgInfo);
                 messageDiv.appendChild(msgBubble);
@@ -783,10 +895,6 @@
                     messageToast.classList.add('hidden');
                 }, 10000);
             }
-
-            // ==========================================
-            // 2. GATILHOS E ESCUTAS
-            // ==========================================
 
             if (mode === "client") {
                 usernameModal.classList.remove('hidden');
@@ -810,13 +918,11 @@
                 initAsHost();
             }
 
-            // Enviar mensagem no chat
             chatForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const message = chatInput.value.trim();
                 if (message) {
                     appendMessage(username, message);
-                    // Avisa os outros clientes/host no chat
                     sendToAllClients({ type: 'chat-message', sender: username, text: message });
                     if (conn) {
                         conn.send({ type: 'chat-message', sender: username, text: message });
@@ -827,28 +933,23 @@
 
             videoForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-
                 const formData = new FormData(videoForm);
                 const videoUrl = formData.get('video_url');
-
                 if (!videoUrl) return;
 
                 const youtubeId = getYouTubeId(videoUrl);
 
                 if (youtubeId) {
-                    // Se o script do YouTube ainda não foi adicionado à página, adiciona
                     if (!window.YT) {
                         const tag = document.createElement('script');
                         tag.src = "https://www.youtube.com/iframe_api";
                         const firstScriptTag = document.getElementsByTagName('script')[0];
                         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-                        // Define o callback que o YouTube vai chamar automaticamente ao carregar
                         window.onYouTubeIframeAPIReady = function () {
                             inicializarPlayerYouTube(youtubeId);
                         };
                     } else {
-                        // Se a API já existir (segunda vez que usam um link do YT), só troca o vídeo
                         inicializarPlayerYouTube(youtubeId);
                     }
 
@@ -857,25 +958,59 @@
                     return;
                 }
 
-                // Comportamento para vídeos normais/diretos (Ex: .mp4, .webm)
                 video.src = videoUrl;
                 modal.classList.add('hidden');
                 sendToAllClients({ type: 'video-changed', provider: 'direct', url: videoUrl });
             });
 
             // ==========================================
-            // ENVIO DE ARQUIVO VÍDEO (CHUNKED P2P)
+            // ENVIO DE ARQUIVO VÍDEO COM CONTROLE DE FLUXO (BACKPRESSURE)
             // ==========================================
             fileInput.onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                // 1. Toca localmente no próprio player do Host
+                // 1. Player do Host carrega o arquivo localmente
                 const videoUrl = URL.createObjectURL(file);
                 video.src = videoUrl;
                 video.load();
 
-                // 2. Avisa os clientes
+                // 2. Prepara o Overlay do Host
+                transferTitle.textContent = `Enviando "${file.name}"...`;
+                localProgressTitle.textContent = "Seu Envio (Host)";
+                transferBar.style.width = '0%';
+                transferPercent.textContent = '0%';
+                allCompletedMsg.classList.add('hidden');
+                clientProgressList.innerHTML = '';
+                clientProgressState = {};
+
+                if (clientsConn.length > 0) {
+                    hostClientsProgressSection.classList.remove('hidden');
+                    clientsConn.forEach(c => {
+                        const clientName = c.customUsername || `Cliente (${c.peer.substring(0, 4)})`;
+                        clientProgressState[c.peer] = { percent: 0, done: false };
+
+                        const clientItem = document.createElement('div');
+                        clientItem.className = 'client-progress-item';
+                        clientItem.id = `client-item-${c.peer}`;
+                        clientItem.innerHTML = `
+                <div class="progress-label">
+                    <span>${clientName}</span>
+                    <span id="client-percent-${c.peer}">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="client-bar-${c.peer}"></div>
+                </div>
+            `;
+                        clientProgressList.appendChild(clientItem);
+                    });
+                } else {
+                    hostClientsProgressSection.classList.add('hidden');
+                }
+
+                transferOverlay.classList.remove('hidden');
+
+                // 3. Notifica os clientes sobre o início do envio
                 sendToAllClients({
                     type: 'video-meta',
                     name: file.name,
@@ -883,12 +1018,26 @@
                     mimeType: file.type
                 });
 
-                // 3. Tamanho ultra-seguro para evitar corrupção em Desktops
-                const CHUNK_SIZE = 16 * 1024; // 16KB 
+                // Aumentamos o chunk para 256KB (ideal para arquivos de 100MB+)
+                const CHUNK_SIZE = 256 * 1024;
+                const MAX_BUFFERED_AMOUNT = 2 * 1024 * 1024; // 2MB de limite de buffer
                 let offset = 0;
                 const reader = new FileReader();
 
                 const readNextChunk = () => {
+                    let isBufferFull = false;
+                    clientsConn.forEach(clientConn => {
+                        const dc = clientConn.dataChannel || clientConn._dc;
+                        if (dc && dc.bufferedAmount > MAX_BUFFERED_AMOUNT) {
+                            isBufferFull = true;
+                        }
+                    });
+
+                    if (isBufferFull) {
+                        setTimeout(readNextChunk, 10);
+                        return;
+                    }
+
                     const slice = file.slice(offset, offset + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
                 };
@@ -896,28 +1045,29 @@
                 reader.onload = (event) => {
                     const buffer = event.target.result;
 
+                    // ENVIO DIRETO DO ARRAYBUFFER (SEM OBJETO JS ENVOLVENDO)
                     clientsConn.forEach(clientConn => {
                         if (clientConn.open) {
-                            clientConn.send({
-                                type: 'video-data',
-                                payload: buffer
-                            });
+                            clientConn.send(buffer);
                         }
                     });
 
                     offset += buffer.byteLength;
 
+                    const percent = Math.min(100, Math.floor((offset / file.size) * 100));
+                    transferBar.style.width = `${percent}%`;
+                    transferPercent.textContent = `${percent}%`;
+
                     if (offset < file.size) {
-                        // O segredo está aqui: um atraso de 1 milissegundo evita o estouro do buffer
-                        // de rede no navegador do computador, impedindo que dados se percam
                         setTimeout(readNextChunk, 1);
                     } else {
-                        console.log("🎉 Vídeo enviado completamente e sem corrupção!");
-                        sendToAllClients({ type: 'video-end' });
+                        // Não precisamos mais do 'video-end', a recepção detecta pelo tamanho total de bytes
+                        if (clientsConn.length === 0) {
+                            setTimeout(() => transferOverlay.classList.add('hidden'), 800);
+                        }
                     }
                 };
 
-                // Inicia o processo
                 readNextChunk();
             };
 
@@ -925,25 +1075,47 @@
                 const target = event.target;
 
                 if (target.closest('#mic-btn')) {
-                    try {
-                        // Solicita o microfone de forma limpa
-                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        console.log('Acesso ao microfone concedido!');
+                    const micBtn = document.getElementById('mic-btn');
 
-                        // Se for Host, liga para todos os clientes conectados
-                        if (clientsConn.length > 0) {
-                            clientsConn.forEach(c => {
-                                const call = peer.call(c.peer, localStream);
-                                activeCalls.push(call);
+                    // 1. Se ainda não pegou a permissão do microfone
+                    if (!localStream) {
+                        try {
+                            localStream = await navigator.mediaDevices.getUserMedia({
+                                audio: {
+                                    echoCancellation: true,
+                                    noiseSuppression: true,
+                                    autoGainControl: true
+                                }
                             });
+
+                            micBtn.classList.add('active');
+
+                            // Conecta áudio com o Host (se for cliente) ou com todos os Clientes (se for Host)
+                            if (isHost) {
+                                clientsConn.forEach(c => {
+                                    const call = peer.call(c.peer, localStream);
+                                    setupAudioCall(call);
+                                });
+                            } else if (conn) {
+                                const call = peer.call(conn.peer, localStream);
+                                setupAudioCall(call);
+                            }
+                        } catch (error) {
+                            console.error('Acesso ao microfone negado ou erro:', error);
                         }
-                        // Se for Cliente, liga direto para o Host
-                        else if (conn) {
-                            const call = peer.call(conn.peer, localStream);
-                            setupAudioCall(call);
+                        return;
+                    }
+
+                    // 2. Se já possui a stream, apenas alterna Mute / Unmute
+                    const audioTrack = localStream.getAudioTracks()[0];
+                    if (audioTrack) {
+                        audioTrack.enabled = !audioTrack.enabled;
+
+                        if (audioTrack.enabled) {
+                            micBtn.classList.add('active');
+                        } else {
+                            micBtn.classList.remove('active');
                         }
-                    } catch (error) {
-                        console.error('Acesso ao microfone negado:', error);
                     }
                     return;
                 }
@@ -958,19 +1130,7 @@
                     if (controlsRow) {
                         controlsRow.classList.toggle('hidden');
                     }
-                    return;
-                }
-
-                if (target.closest('.modal-overlay .close-btn')) {
-                    modal.classList.add('hidden');
-                    return;
-                }
-
-                if (!isHost) return;
-
-                if (target.closest('.play-pause-btn')) {
-                    if (!video.src) return;
-                    video.paused ? video.play() : video.pause();
+                    alternarTelaCheia();
                     return;
                 }
 
@@ -988,14 +1148,12 @@
                         soundOnIcon.classList.remove('hidden');
                         soundOffIcon.classList.add('hidden');
                     }
-
                     return;
                 }
 
                 if (target.closest('.pip-btn')) {
                     if (!video.src) return;
                     try {
-                        // 1. Método Padrão (Android, Chrome, Firefox, Safari de Desktop)
                         if (video.requestPictureInPicture) {
                             if (document.pictureInPictureElement) {
                                 await document.exitPictureInPicture();
@@ -1003,21 +1161,22 @@
                                 await video.requestPictureInPicture();
                             }
                         }
-                        // 2. Método do iPhone/iOS (Safari)
-                        else if (video.webkitSupportsPresentationMode && typeof video.webkitSetPresentationMode === "function") {
-                            // Verifica o modo atual e alterna
-                            if (video.webkitPresentationMode === "picture-in-picture") {
-                                video.webkitSetPresentationMode("inline");
-                            } else {
-                                video.webkitSetPresentationMode("picture-in-picture");
-                            }
-                        }
-                        else {
-                            console.log("PiP não é suportado neste navegador.");
-                        }
                     } catch (error) {
-                        console.error("Erro ao alternar o PiP:", error);
+                        console.error("Erro ao alternar PiP:", error);
                     }
+                    return;
+                }
+
+                if (target.closest('.modal-overlay .close-btn')) {
+                    modal.classList.add('hidden');
+                    return;
+                }
+
+                if (!isHost && syncWithHost) return;
+
+                if (target.closest('.play-pause-btn')) {
+                    if (!video.src) return;
+                    video.paused ? video.play() : video.pause();
                     return;
                 }
 
@@ -1026,6 +1185,18 @@
                     return;
                 }
             });
+
+            function alternarTelaCheia() {
+                const elem = document.documentElement;
+
+                if (!document.fullscreenElement) {
+                    elem.requestFullscreen().catch((err) => {
+                        console.error(`Erro ao ativar tela cheia: ${err.message}`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }
 
             function sendVideoState() {
                 if (!isHost) return;
@@ -1043,29 +1214,24 @@
                 return `${mins}:${secs.toString().padStart(2, '0')}`;
             }
 
-            // 1. Configura o máximo da barra quando o metadado carregar
             video.addEventListener('loadedmetadata', () => {
                 duration.textContent = formatTime(video.duration);
-                progressRange.max = video.duration; // O valor máximo é a duração total em segundos
+                progressRange.max = video.duration;
             });
 
-            // 2. Atualiza a posição da barra conforme o vídeo toca
             video.addEventListener('timeupdate', () => {
                 currentTime.textContent = formatTime(video.currentTime);
 
-                // Só atualiza a barra se o usuário não estiver arrastando ela naquele momento
                 if (!progressRange.classList.contains('seeking')) {
                     progressRange.value = video.currentTime;
                 }
             });
 
-            // 3. Atualiza o tempo do vídeo quando o usuário arrasta ou clica na barra
             progressRange.addEventListener('input', () => {
-                progressRange.classList.add('seeking'); // Trava a atualização do timeupdate pra não dar conflito
+                progressRange.classList.add('seeking');
                 video.currentTime = progressRange.value;
             });
 
-            // Remove a trava quando o usuário solta o clique/toque
             progressRange.addEventListener('change', () => {
                 progressRange.classList.remove('seeking');
             });
@@ -1084,7 +1250,6 @@
 
             video.addEventListener('seeked', sendVideoState);
 
-            // --- 1. FUNÇÕES AUXILIARES DE INICIALIZAÇÃO ---
             function createPeer(id = null) {
                 return new Promise((resolve) => {
                     const newInstance = id ? new Peer(id) : new Peer();
@@ -1092,10 +1257,8 @@
                 });
             }
 
-            // Configura o recebimento de áudio nativo do WebRTC
             function setupAudioCall(call) {
                 call.on('stream', (remoteStream) => {
-                    // Cria um elemento de áudio em memória para reproduzir a voz recebida
                     let remoteAudio = document.getElementById(`audio-${call.peer}`);
                     if (!remoteAudio) {
                         remoteAudio = document.createElement('audio');
@@ -1104,66 +1267,55 @@
                         document.body.appendChild(remoteAudio);
                     }
                     remoteAudio.srcObject = remoteStream;
+
+                    // Tenta dar play explicitamente para contornar políticas de Autoplay
+                    remoteAudio.play().catch(err => {
+                        console.warn("Autoplay de áudio bloqueado pelo navegador:", err);
+                    });
                 });
             }
 
-            // --- 2. FLUXOS PRINCIPAIS (HOST / CLIENTE) ---
             async function initAsClient() {
-                console.log("Tentando entrar na sala como Cliente...");
                 peer = await createPeer();
-
                 conn = peer.connect(roomId, { reliable: true });
 
                 conn.on('open', () => {
-                    console.log(`🎉 Conectado ao Host da sala: ${roomId}`);
                     setupDataFlow(conn);
                     statusBadge.classList.remove('hidden');
-                    // CASSO NOVO: Envia o nome do usuário para o Host assim que conectar
                     conn.send({ type: 'join-room', username: username });
 
                     setInterval(() => {
                         if (conn?.open) {
-                            conn.send({
-                                type: 'ping'
-                            });
+                            conn.send({ type: 'ping' });
                         }
                     }, 10000);
                 });
 
                 window.addEventListener('beforeunload', () => {
-                    conn.close(); // Força o fechamento limpo antes de destruir a janela
+                    conn.close();
                 });
 
-                // Escuta chamadas de áudio recebidas do Host ou de outros clientes
                 peer.on('call', (call) => {
-                    call.answer(localStream || undefined); // Responde com o próprio mic (se ativo)
+                    // Responde enviando a localStream se ela já existir, ou atende apenas escutando
+                    call.answer(localStream || undefined);
                     setupAudioCall(call);
                 });
 
                 conn.on('close', () => {
-                    console.log("⚠️ A conexão com o Host foi encerrada.");
                     errorMessage.innerText = "A conexão com o Host foi encerrada.";
                     errorModal.classList.remove('hidden');
                 });
 
                 peer.on('error', (err) => {
                     if (err.type === 'peer-unavailable') {
-                        /*console.log("⚠️ Host indisponível. Alternando para modo HOST...");
-                        peer.destroy();
-                        initAsHost();*/
-                        console.log("Host indisponível.");
                         peer.destroy();
                         errorMessage.innerText = "Host indisponível.";
                         errorModal.classList.remove('hidden');
-                    } else {
-                        console.error("Erro no Peer Cliente:", err);
                     }
                 });
             }
 
             async function initAsHost() {
-                console.log(`👑 Abrindo a sala como HOST. ID: ${roomId}`);
-
                 try {
                     peer = await createPeer(roomId);
                     isHost = true;
@@ -1171,30 +1323,17 @@
                     statusBadge.classList.remove('hidden');
                     playPauseBtn.classList.remove('hidden');
                     progressRange.classList.remove('hidden');
-                    console.log(`Sala aberta. Aguardando clientes...`);
 
                     setInterval(() => {
-
                         const now = Date.now();
-
                         clientsConn = clientsConn.filter(clientConn => {
-
                             if (now - (clientConn.lastPing || 0) > 30000) {
-
-                                console.log("Cliente morto:", clientConn.peer);
-
-                                try {
-                                    clientConn.close();
-                                } catch { }
-
+                                try { clientConn.close(); } catch { }
                                 return false;
                             }
-
                             return true;
                         });
-
                         updateRoomCount();
-
                     }, 5000);
                 } catch (err) {
                     console.error("Erro ao abrir sala como Host:", err);
@@ -1202,10 +1341,7 @@
                 }
 
                 peer.on('connection', (clientConn) => {
-                    console.log(`👥 Cliente conectado! ID: ${clientConn.peer}`);
-
                     clientConn.lastPing = Date.now();
-
                     clientsConn.push(clientConn);
                     setupDataFlow(clientConn);
 
@@ -1221,8 +1357,7 @@
                         updateRoomCount();
                     });
 
-                    clientConn.on('error', (err) => {
-                        console.log(`Conexão com ${clientConn.peer} gerou um erro ou caiu.`);
+                    clientConn.on('error', () => {
                         clientsConn = clientsConn.filter(c => c.peer !== clientConn.peer);
                         updateRoomCount();
                     });
@@ -1233,15 +1368,14 @@
                             clientConn.peerConnection.connectionState === "closed" ||
                             clientConn.peerConnection.connectionState === "disconnected"
                         ) {
-
                             clientsConn = clientsConn.filter(c => c.peer !== clientConn.peer);
                             updateRoomCount();
                         }
                     };
                 });
 
-                // Host escuta e responde chamadas de voz vindas dos clientes
                 peer.on('call', (call) => {
+                    // Responde enviando a localStream se ela já existir, ou atende apenas escutando
                     call.answer(localStream || undefined);
                     setupAudioCall(call);
                 });
@@ -1251,9 +1385,55 @@
                 });
             }
 
-            // --- 3. PROCESSAMENTO DE DADOS (SALA DE VÍDEO) ---
+            // --- 3. PROCESSAMENTO DE DADOS (DADOS E FEEDBACKS DE DOWNLOAD) ---
             function setupDataFlow(connection) {
                 connection.on('data', (data) => {
+
+                    // ==========================================
+                    // A. RECEBIMENTO DE BINÁRIO PURO (CHUNKS DO VÍDEO)
+                    // ==========================================
+                    if (data instanceof ArrayBuffer || data.byteLength !== undefined) {
+                        if (receivedChunks && incomingMeta) {
+                            receivedChunks.push(data);
+                            receivedBytes += data.byteLength;
+
+                            const percent = Math.min(100, Math.floor((receivedBytes / incomingMeta.size) * 100));
+                            transferBar.style.width = `${percent}%`;
+                            transferPercent.textContent = `${percent}%`;
+
+                            // Envia feedback de progresso ao Host a cada alteração de %
+                            if (connection.lastReportedPercent !== percent) {
+                                connection.lastReportedPercent = percent;
+                                connection.send({ type: 'client-download-progress', percent });
+                            }
+
+                            // DOWNLOAD CONCLUÍDO (Atingiu o tamanho total enviado pelo 'video-meta')
+                            if (receivedBytes >= incomingMeta.size) {
+                                const videoBlob = new Blob(receivedChunks, { type: incomingMeta.mimeType });
+                                const localVideoUrl = URL.createObjectURL(videoBlob);
+
+                                video.src = localVideoUrl;
+                                video.load();
+
+                                // Avisa o Host que o download terminou
+                                connection.send({ type: 'client-download-complete' });
+
+                                // Reseta variáveis de controle
+                                receivedChunks = [];
+                                incomingMeta = null;
+                                receivedBytes = 0;
+
+                                setTimeout(() => {
+                                    transferOverlay.classList.add('hidden');
+                                }, 800);
+                            }
+                        }
+                        return;
+                    }
+
+                    // ==========================================
+                    // B. MENSAGENS DE CONTROLE E CHAT (OBJETOS JSON)
+                    // ==========================================
                     if (!data?.type) return;
 
                     if (data.type === 'ping') {
@@ -1261,168 +1441,149 @@
                         return;
                     }
 
-                    // ==========================================
-                    // RECEBIMENTO DE ARQUIVOS (MÉTODOS CLIENTE)
-                    // ==========================================
+                    // 1. FEEDBACKS RECEBIDOS PELO HOST
+                    if (isHost) {
+                        if (data.type === 'client-download-progress') {
+                            if (clientProgressState[connection.peer]) {
+                                clientProgressState[connection.peer].percent = data.percent;
+                                const bar = document.getElementById(`client-bar-${connection.peer}`);
+                                const percentText = document.getElementById(`client-percent-${connection.peer}`);
+                                if (bar) bar.style.width = `${data.percent}%`;
+                                if (percentText) percentText.textContent = `${data.percent}%`;
+                            }
+                            return;
+                        }
 
-                    // Passo A: Cliente recebe os metadados do arquivo
+                        if (data.type === 'client-download-complete') {
+                            if (clientProgressState[connection.peer]) {
+                                clientProgressState[connection.peer].percent = 100;
+                                clientProgressState[connection.peer].done = true;
+
+                                const bar = document.getElementById(`client-bar-${connection.peer}`);
+                                const percentText = document.getElementById(`client-percent-${connection.peer}`);
+                                if (bar) bar.style.width = `100%`;
+                                if (percentText) percentText.textContent = `100%`;
+
+                                checkAllClientsFinished();
+                            }
+                            return;
+                        }
+                    }
+
+                    // 2. RECEBIMENTO DE METADADOS NO CLIENTE
                     if (data.type === 'video-meta') {
                         incomingMeta = data;
-                        receivedChunks = []; // Limpa buffers anteriores
-                        console.log(`Recebendo vídeo: ${data.name} (${(data.size / 1024 / 1024).toFixed(2)} MB)`);
+                        receivedChunks = [];
+                        receivedBytes = 0;
+
+                        localProgressTitle.textContent = "Seu Download";
+                        hostClientsProgressSection.classList.add('hidden');
+                        transferTitle.textContent = `Recebendo "${data.name}"...`;
+                        transferBar.style.width = '0%';
+                        transferPercent.textContent = '0%';
+                        transferOverlay.classList.remove('hidden');
                         return;
                     }
 
-                    // Passo B: Cliente recebe um pedaço isolado do arquivo
-                    if (data.type === 'video-data') {
-                        if (receivedChunks) {
-                            receivedChunks.push(data.payload);
-                        }
-                        return;
-                    }
-
-                    // Passo C: O Host avisa que o envio acabou. Hora de montar o arquivo!
-                    if (data.type === 'video-end') {
-                        if (receivedChunks.length > 0 && incomingMeta) {
-                            console.log("Montando o arquivo de vídeo recebido...");
-
-                            // Cria o arquivo binário na memória do cliente
-                            const videoBlob = new Blob(receivedChunks, { type: incomingMeta.mimeType });
-                            const localVideoUrl = URL.createObjectURL(videoBlob);
-
-                            // Aplica no player do cliente
-                            video.src = localVideoUrl;
-                            video.load();
-
-                            // Limpa a memória
-                            receivedChunks = [];
-                            incomingMeta = null;
-                        }
-                        return;
-                    }
-
-                    // ===========================
-                    // ENTRADA NA SALA
-                    // ===========================
+                    // 3. CHAT E SALA
                     if (data.type === 'join-room') {
                         connection.customUsername = data.username;
-
                         appendMessage('Sistema', `${data.username} entrou na sala!`);
 
                         clientsConn.forEach(clientConn => {
                             if (clientConn.peer === connection.peer) return;
-
                             clientConn.send({
                                 type: 'chat-message',
                                 sender: 'Sistema',
                                 text: `${data.username} entrou na sala.`
                             });
                         });
-
                         return;
                     }
 
-                    // ===========================
-                    // CHAT
-                    // ===========================
                     if (data.type === 'chat-message') {
-
                         appendMessage(data.sender, data.text);
 
-                        // Host replica para os demais clientes
                         if (!conn) {
                             clientsConn.forEach(clientConn => {
                                 if (clientConn.peer === connection.peer) return;
                                 clientConn.send(data);
                             });
                         }
-
                         return;
                     }
 
-                    // Host não precisa sincronizar vídeo
-                    if (isHost) {
-                        if (syncWithHost) return;
-                    }
+                    if (isHost && syncWithHost) return;
 
-                    // ===========================
-                    // CONTADOR
-                    // ===========================
                     if (data.type === 'room-stats') {
                         onlineCountEl.textContent = `${data.total} Online`;
                         return;
                     }
 
-                    // ===========================
-                    // CLIENTE RECEBE O VÍDEO AO ENTRAR
-                    // ===========================
+                    // 4. PLAYER & YOUTUBE
                     if (data.type === 'video-info') {
-
-                        if (video.src !== data.url) {
-                            video.src = data.url;
-                            video.load();
-                        }
-
-                        video.addEventListener('loadedmetadata', () => {
-
-                            video.currentTime = data.time;
-
-                            if (!data.isPaused) {
-                                video.play().catch(console.error);
+                        if (data.provider === 'youtube') {
+                            carregarPlayerYouTube(data.id);
+                        } else {
+                            if (video.src !== data.url) {
+                                video.src = data.url;
+                                video.load();
                             }
-
-                        }, { once: true });
-
-                        return;
-                    }
-
-                    // ===========================
-                    // TROCA DE VÍDEO
-                    // ===========================
-                    if (data.type === 'video-changed') {
-
-                        if (video.src !== data.url) {
-                            video.src = data.url;
-                            video.load();
+                            video.addEventListener('loadedmetadata', () => {
+                                video.currentTime = data.time;
+                                if (!data.isPaused) {
+                                    video.play().catch(console.error);
+                                }
+                            }, { once: true });
                         }
-
                         return;
                     }
 
-                    // ===========================
-                    // SINCRONIZAÇÃO DO PLAYER
-                    // ===========================
-                    if (data.type === 'video-state') {
+                    if (data.type === 'video-changed') {
+                        if (data.provider === 'youtube') {
+                            carregarPlayerYouTube(data.id);
+                        } else {
+                            if (video.src !== data.url) {
+                                video.src = data.url;
+                                video.load();
+                            }
+                        }
+                        return;
+                    }
 
+                    if (data.type === 'video-state') {
                         const diff = Math.abs(video.currentTime - data.currentTime);
 
-                        // Só faz seek quando realmente necessário
                         if (diff > 0.5) {
                             video.currentTime = data.currentTime;
                         }
 
                         if (data.paused) {
-
-                            if (!video.paused) {
-                                video.pause();
-                            }
-
+                            if (!video.paused) video.pause();
                         } else {
-
-                            if (video.paused) {
-                                video.play().catch(console.error);
-                            }
-
+                            if (video.paused) video.play().catch(console.error);
                         }
-
                         return;
                     }
                 });
             }
-            function updateRoomCount() {
-                // Garante que só estamos contando clientes cuja conexão de dados realmente diz estar aberta
-                clientsConn = clientsConn.filter(c => c.open);
 
+            function checkAllClientsFinished() {
+                const peers = Object.keys(clientProgressState);
+                if (peers.length === 0) return;
+
+                const allDone = peers.every(peerId => clientProgressState[peerId].done);
+                if (allDone) {
+                    allCompletedMsg.classList.remove('hidden');
+
+                    setTimeout(() => {
+                        transferOverlay.classList.add('hidden');
+                    }, 2500);
+                }
+            }
+
+            function updateRoomCount() {
+                clientsConn = clientsConn.filter(c => c.open);
                 const totalUsers = clientsConn.length + 1;
                 onlineCountEl.textContent = `${totalUsers} Online`;
                 sendToAllClients({ type: 'room-stats', total: totalUsers });
@@ -1436,13 +1597,10 @@
                 });
             }
 
-            // 3. Esta função cria o <iframe> (e o player) após o download do código da API
             var player;
-            // Função para criar ou atualizar o player do YT
             function inicializarPlayerYouTube(videoId) {
-                // Aqui dentro você usa o construtor: new YT.Player('id-do-conteiner', { videoId: videoId })
                 if (player) {
-                    player.destroy(); // Destroi o player antigo se existir
+                    player.destroy();
                 }
 
                 player = new YT.Player('main-video', {
@@ -1454,28 +1612,27 @@
                         'controls': 0
                     },
                     events: {
-                        'onReady': onPlayerReady,
-                        'onStateChange': onPlayerStateChange
+                        'onError': onYouTubePlayerError
                     }
                 });
             }
 
-            // 4. A API chamará esta função quando o player estiver pronto
-            function onPlayerReady(event) {
-                console.log("O player está pronto para ser usado!");
-            }
-
-            // 5. A API chama esta função sempre que o estado do player muda
-            // (ex: começou a tocar, pausou, terminou)
-            function onPlayerStateChange(event) {
-                if (event.data == YT.PlayerState.PLAYING) {
-                    console.log("O vídeo está rodando...");
-                } else if (event.data == YT.PlayerState.ENDED) {
-                    console.log("O vídeo terminou!");
+            function onYouTubePlayerError(event) {
+                // 101 e 150: O proprietário desativou a reprodução incorporada
+                if (event.data === 101 || event.data === 150) {
+                    errorMessage.innerText = "Este vídeo possui restrições de direitos autorais e não permite reprodução fora do site do YouTube. Tente usar um envio não-oficial ou outro link.";
+                    errorModal.classList.remove('hidden');
+                }
+                else if (event.data === 2) {
+                    errorMessage.innerText = "ID do vídeo do YouTube é inválido.";
+                    errorModal.classList.remove('hidden');
+                }
+                else if (event.data === 100) {
+                    errorMessage.innerText = "O vídeo do YouTube não foi encontrado ou é privado.";
+                    errorModal.classList.remove('hidden');
                 }
             }
 
-            // Função auxiliar para extrair o ID do YouTube de forma segura
             function getYouTubeId(url) {
                 const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
                 const match = url.match(regExp);
