@@ -861,6 +861,27 @@
             let receivedBytes = 0;
             let clientProgressState = {}; // Guarda o progresso dos clientes para o Host
 
+            // Variáveis globais para gerenciar o áudio
+            let audioCtx = null;
+            let silentStream = null;
+
+            // Função que roda DENTRO do evento do Modal (Gesto Válido do iOS)
+            function initAudioSystem() {
+                if (audioCtx) return;
+
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioCtx.resume();
+
+                // Cria uma faixa de áudio 100% silenciosa
+                const osc = audioCtx.createOscillator();
+                const dst = osc.connect(audioCtx.createMediaStreamDestination());
+                osc.start();
+
+                const silentTrack = dst.stream.getAudioTracks()[0];
+                silentTrack.enabled = false; // Muted
+                silentStream = new MediaStream([silentTrack]);
+            }
+
             if (roomId) {
                 roomIdElement.textContent = roomId;
                 document.getElementById('room-id').parentElement.classList.remove('hidden');
@@ -911,6 +932,7 @@
                         sessionStorage.setItem('username', username);
                         usernameModal.remove();
                         document.querySelector('.full-screen-btn').classList.remove('hidden');
+                        initAudioSystem();
                         initAsClient();
                     }
                 });
@@ -1076,9 +1098,7 @@
 
                 if (target.closest('#mic-btn')) {
                     const micBtn = document.getElementById('mic-btn');
-
-                    // Desbloqueia o sistema de áudio do Safari no iOS no primeiro clique
-                    desbloquearAudioiOS();
+                    initAudioSystem();
 
                     if (!localStream) {
                         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1087,7 +1107,7 @@
                         }
 
                         try {
-                            // Tenta pegar áudio (com fallback para iOS)
+                            // Pega o microfone real
                             try {
                                 localStream = await navigator.mediaDevices.getUserMedia({
                                     audio: { echoCancellation: true, noiseSuppression: true }
@@ -1098,24 +1118,34 @@
 
                             micBtn.classList.add('active');
 
-                            // LIGA PARA TODOS OS PEERS DA SALA (Full Mesh)
-                            const targetsToCall = isHost ? clientsConn.map(c => c.peer) : roomPeers;
+                            const realTrack = localStream.getAudioTracks()[0];
 
+                            // Substitui a faixa silenciosa pela faixa real do mic em todas as conexões ativas
+                            activeCalls.forEach(call => {
+                                const senders = call.peerConnection.getSenders();
+                                const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+                                if (audioSender) {
+                                    audioSender.replaceTrack(realTrack);
+                                }
+                            });
+
+                            // Se for novo participante na sala, estabelece chamadas Mesh com os demais
+                            const targetsToCall = isHost ? clientsConn.map(c => c.peer) : roomPeers;
                             targetsToCall.forEach(peerId => {
-                                if (peerId !== peer.id) {
+                                if (peerId !== peer.id && !activeCalls.some(c => c.peer === peerId)) {
                                     const call = peer.call(peerId, localStream);
                                     setupAudioCall(call);
                                 }
                             });
 
                         } catch (error) {
-                            console.error('Acesso ao microfone negado:', error);
+                            console.error('Erro ao acessar o microfone:', error);
                             alert("Não foi possível acessar o microfone.");
                         }
                         return;
                     }
 
-                    // Alternar Mute / Unmute
+                    // Se já tinha a localStream capturada, apenas alterna Mute / Unmute
                     const audioTrack = localStream.getAudioTracks()[0];
                     if (audioTrack) {
                         audioTrack.enabled = !audioTrack.enabled;
@@ -1274,27 +1304,30 @@
             document.body.addEventListener('click', desbloquearAudioiOS, { once: true });
 
             function setupAudioCall(call) {
+                if (!activeCalls.some(c => c.peer === call.peer)) {
+                    activeCalls.push(call);
+                }
+
                 call.on('stream', (remoteStream) => {
                     let remoteAudio = document.getElementById(`audio-${call.peer}`);
                     if (!remoteAudio) {
                         remoteAudio = document.createElement('audio');
                         remoteAudio.id = `audio-${call.peer}`;
                         remoteAudio.autoplay = true;
-                        remoteAudio.setAttribute('playsinline', 'true'); // Essencial para iOS
+                        remoteAudio.setAttribute('playsinline', 'true');
                         document.body.appendChild(remoteAudio);
                     }
 
                     remoteAudio.srcObject = remoteStream;
+                    remoteAudio.play().catch(err => {
+                        console.warn("Falha ao tocar áudio no Safari:", err);
+                    });
+                });
 
-                    // Força a reprodução contornando restrições do Safari
-                    const playPromise = remoteAudio.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.warn("Autoplay de áudio retido pelo iOS. Tentando novamente...", error);
-                            // Caso o iOS segure o play, libera ao dar qualquer toque na tela
-                            document.addEventListener('click', () => remoteAudio.play(), { once: true });
-                        });
-                    }
+                call.on('close', () => {
+                    activeCalls = activeCalls.filter(c => c.peer !== call.peer);
+                    const remoteAudio = document.getElementById(`audio-${call.peer}`);
+                    if (remoteAudio) remoteAudio.remove();
                 });
             }
 
@@ -1319,13 +1352,15 @@
                 });
 
                 peer.on('call', (call) => {
-                    desbloquearAudioiOS();
-                    // Responde com o microfone se estiver ativado, senão atende sem enviar áudio
-                    if (localStream && localStream.getAudioTracks()[0]?.enabled) {
-                        call.answer(localStream);
-                    } else {
-                        call.answer(); // Atende sem stream para poder receber o áudio do outro
-                    }
+                    // Garante que o sistema de áudio está ativo
+                    initAudioSystem();
+
+                    // Envia o áudio do mic se ligado, ou a stream silenciosa se desligado
+                    const streamToSend = (localStream && localStream.getAudioTracks()[0]?.enabled)
+                        ? localStream
+                        : silentStream;
+
+                    call.answer(streamToSend);
                     setupAudioCall(call);
                 });
 
@@ -1403,13 +1438,15 @@
                 });
 
                 peer.on('call', (call) => {
-                    desbloquearAudioiOS();
-                    // Responde com o microfone se estiver ativado, senão atende sem enviar áudio
-                    if (localStream && localStream.getAudioTracks()[0]?.enabled) {
-                        call.answer(localStream);
-                    } else {
-                        call.answer(); // Atende sem stream para poder receber o áudio do outro
-                    }
+                    // Garante que o sistema de áudio está ativo
+                    initAudioSystem();
+
+                    // Envia o áudio do mic se ligado, ou a stream silenciosa se desligado
+                    const streamToSend = (localStream && localStream.getAudioTracks()[0]?.enabled)
+                        ? localStream
+                        : silentStream;
+
+                    call.answer(streamToSend);
                     setupAudioCall(call);
                 });
 
