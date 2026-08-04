@@ -868,7 +868,8 @@
             function initAudioSystem() {
                 if (audioCtx) return;
 
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass({ sampleRate: 48000 });
                 audioCtx.resume();
 
                 // Oscilador com ganho zero (silêncio real com track WebRTC ativa)
@@ -1093,6 +1094,28 @@
                 readNextChunk();
             };
 
+            const audioConstraints = {
+                audio: {
+                    echoCancellation: true,   // Mantém para evitar microfonia no mobile
+                    noiseSuppression: true,   // Remove ruídos de fundo
+                    autoGainControl: true,    // Evita oscilações bruscas no volume
+                    sampleRate: 48000,        // Qualidade de estúdio (48 kHz)
+                    sampleSize: 16,
+                    channelCount: 1           // 1 para voz limpa (Mono) ou 2 se quiser enviar áudio Stereo
+                }
+            };
+
+            function optimizeAudioSDP(sdp) {
+                // Força o Opus a operar em 96 kbps (96000) com Forward Error Correction (fec)
+                if (sdp.includes('opus/48000')) {
+                    return sdp.replace(
+                        'useinbandfec=1',
+                        'useinbandfec=1;maxaveragebitrate=96000;stereo=1;sprop-stereo=1'
+                    );
+                }
+                return sdp;
+            }
+
             document.body.addEventListener('click', async (event) => {
                 const target = event.target;
 
@@ -1109,9 +1132,7 @@
                         try {
                             // Pega o microfone real
                             try {
-                                localStream = await navigator.mediaDevices.getUserMedia({
-                                    audio: { echoCancellation: true, noiseSuppression: true }
-                                });
+                                localStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
                             } catch (err) {
                                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                             }
@@ -1133,7 +1154,12 @@
                             const targetsToCall = isHost ? clientsConn.map(c => c.peer) : roomPeers;
                             targetsToCall.forEach(peerId => {
                                 if (peerId !== peer.id && !activeCalls.some(c => c.peer === peerId)) {
-                                    const call = peer.call(peerId, localStream);
+                                    const streamToSend = (localStream && localStream.getAudioTracks()[0]?.enabled)
+                                        ? localStream
+                                        : silentStream;
+                                    const call = peer.call(peerId, streamToSend, {
+                                        sdpTransform: (sdp) => optimizeAudioSDP(sdp)
+                                    });
                                     setupAudioCall(call);
                                 }
                             });
@@ -1412,7 +1438,9 @@
                         ? localStream
                         : silentStream;
 
-                    call.answer(streamToSend);
+                    call.answer(streamToSend, {
+                        sdpTransform: (sdp) => optimizeAudioSDP(sdp)
+                    });
                     setupAudioCall(call);
                 });
 
@@ -1469,7 +1497,12 @@
                         // Se o Host já estiver com o microfone ligado, liga para o cliente que acabou de entrar
                         if (localStream && localStream.getAudioTracks()[0]?.enabled) {
                             if (!activeCalls.some(c => c.peer === clientConn.peer)) {
-                                const call = peer.call(clientConn.peer, localStream);
+                                const streamToSend = (localStream && localStream.getAudioTracks()[0]?.enabled)
+                                    ? localStream
+                                    : silentStream;
+                                const call = peer.call(peerId, streamToSend, {
+                                    sdpTransform: (sdp) => optimizeAudioSDP(sdp)
+                                });
                                 setupAudioCall(call);
                             }
                         }
@@ -1505,7 +1538,9 @@
                         ? localStream
                         : silentStream;
 
-                    call.answer(streamToSend);
+                    call.answer(streamToSend, {
+                        sdpTransform: (sdp) => optimizeAudioSDP(sdp)
+                    });
                     setupAudioCall(call);
                 });
 
@@ -1656,7 +1691,12 @@
                             if (localStream && localStream.getAudioTracks()[0]?.enabled) {
                                 roomPeers.forEach(peerId => {
                                     if (!previousPeers.includes(peerId)) {
-                                        const call = peer.call(peerId, localStream);
+                                        const streamToSend = (localStream && localStream.getAudioTracks()[0]?.enabled)
+                                            ? localStream
+                                            : silentStream;
+                                        const call = peer.call(peerId, streamToSend, {
+                                            sdpTransform: (sdp) => optimizeAudioSDP(sdp)
+                                        });
                                         setupAudioCall(call);
                                     }
                                 });
