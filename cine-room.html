@@ -871,19 +871,19 @@
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 audioCtx.resume();
 
-                // Cria uma faixa de áudio 100% silenciosa
+                // Oscilador com ganho zero (silêncio real com track WebRTC ativa)
                 const osc = audioCtx.createOscillator();
-                const dst = osc.connect(audioCtx.createMediaStreamDestination());
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0;
+
+                osc.connect(gain);
+                const dst = audioCtx.createMediaStreamDestination();
+                gain.connect(dst);
                 osc.start();
 
                 const silentTrack = dst.stream.getAudioTracks()[0];
-                silentTrack.enabled = false; // Muted
+                silentTrack.enabled = true; // Mantém a faixa ativa para o iOS não cortar a transmissão
                 silentStream = new MediaStream([silentTrack]);
-            }
-
-            if (roomId) {
-                roomIdElement.textContent = roomId;
-                document.getElementById('room-id').parentElement.classList.remove('hidden');
             }
 
             function appendMessage(sender, text) {
@@ -1159,6 +1159,12 @@
                     return;
                 }
 
+                if (target.closest('#messageToast')) {
+                    sidebar.classList.add('open');
+                    document.getElementById('messageToast').classList.add('hidden');
+                    return;
+                }
+
                 if (target.closest('.full-screen-btn')) {
                     header.classList.toggle('hidden');
                     if (controlsRow) {
@@ -1313,13 +1319,12 @@
                 silentAudio.play().catch(() => { });
             }
 
-            // Garante o desbloqueio também para o Host ou cliques na página
-            const handleFirstInteraction = () => {
+            const unlockHostAudio = () => {
                 initAudioSystem();
                 unlockAudioContextOnGesture();
             };
-            document.body.addEventListener('touchstart', handleFirstInteraction, { once: true });
-            document.body.addEventListener('click', handleFirstInteraction, { once: true });
+            document.body.addEventListener('touchstart', unlockHostAudio, { once: true });
+            document.body.addEventListener('click', unlockHostAudio, { once: true });
 
             function setupAudioCall(call) {
                 if (!activeCalls.some(c => c.peer === call.peer)) {
@@ -1327,6 +1332,7 @@
                 }
 
                 call.on('stream', (remoteStream) => {
+                    initAudioSystem();
                     if (audioCtx && audioCtx.state === 'suspended') {
                         audioCtx.resume();
                     }
@@ -1335,19 +1341,40 @@
                     if (!remoteAudio) {
                         remoteAudio = document.createElement('audio');
                         remoteAudio.id = `audio-${call.peer}`;
-                        remoteAudio.autoplay = true;
-                        remoteAudio.playsInline = true;
                         remoteAudio.setAttribute('playsinline', '');
+                        remoteAudio.setAttribute('webkit-playsinline', '');
+                        remoteAudio.autoplay = true;
                         remoteAudio.style.display = 'none';
                         document.body.appendChild(remoteAudio);
                     }
 
                     remoteAudio.srcObject = remoteStream;
-                    remoteAudio.muted = false; // Precisa ser false para emitir som no WebKit
+                    remoteAudio.muted = false; // OBRIGATÓRIO no iOS para a WebKit não congelar a faixa WebRTC
 
-                    remoteAudio.play().catch(err => {
-                        console.error("Erro no autoplay do áudio no iOS:", err);
-                    });
+                    // Conecta o áudio recebido direto no AudioContext (placa de som)
+                    if (audioCtx) {
+                        try {
+                            const source = audioCtx.createMediaStreamSource(remoteStream);
+                            source.connect(audioCtx.destination);
+                        } catch (err) {
+                            console.error("Erro no AudioContext source:", err);
+                        }
+                    }
+
+                    // Tenta a reprodução direta na tag HTML
+                    const playPromise = remoteAudio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(() => {
+                            // Fallback: se o iOS do Host bloquear por falta de toque recente na tela, 
+                            // força a reprodução no primeiro toque que o Host der na página
+                            const unlockOnTouch = () => {
+                                remoteAudio.play();
+                                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                            };
+                            document.body.addEventListener('touchstart', unlockOnTouch, { once: true });
+                            document.body.addEventListener('click', unlockOnTouch, { once: true });
+                        });
+                    }
                 });
 
                 call.on('close', () => {
