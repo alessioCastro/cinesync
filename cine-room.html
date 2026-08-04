@@ -1154,9 +1154,7 @@
                             const targetsToCall = isHost ? clientsConn.map(c => c.peer) : roomPeers;
                             targetsToCall.forEach(peerId => {
                                 if (peerId !== peer.id && !activeCalls.some(c => c.peer === peerId)) {
-                                    const call = peer.call(peerId, localStream, {
-                                        sdpTransform: (sdp) => optimizeAudioSDP(sdp)
-                                    });
+                                    const call = peer.call(peerId, localStream);
                                     setupAudioCall(call);
                                 }
                             });
@@ -1435,9 +1433,7 @@
                         ? localStream
                         : silentStream;
 
-                    call.answer(streamToSend, {
-                        sdpTransform: (sdp) => optimizeAudioSDP(sdp)
-                    });
+                    call.answer(streamToSend);
                     setupAudioCall(call);
                 });
 
@@ -1494,9 +1490,7 @@
                         // Se o Host já estiver com o microfone ligado, liga para o cliente que acabou de entrar
                         if (localStream && localStream.getAudioTracks()[0]?.enabled) {
                             if (!activeCalls.some(c => c.peer === clientConn.peer)) {
-                                const call = peer.call(peerId, localStream, {
-                                    sdpTransform: (sdp) => optimizeAudioSDP(sdp)
-                                });
+                                const call = peer.call(clientConn.peer, localStream);
                                 setupAudioCall(call);
                             }
                         }
@@ -1532,9 +1526,7 @@
                         ? localStream
                         : silentStream;
 
-                    call.answer(streamToSend, {
-                        sdpTransform: (sdp) => optimizeAudioSDP(sdp)
-                    });
+                    call.answer(streamToSend);
                     setupAudioCall(call);
                 });
 
@@ -1685,9 +1677,7 @@
                             if (localStream && localStream.getAudioTracks()[0]?.enabled) {
                                 roomPeers.forEach(peerId => {
                                     if (!previousPeers.includes(peerId)) {
-                                        const call = peer.call(peerId, localStream, {
-                                            sdpTransform: (sdp) => optimizeAudioSDP(sdp)
-                                        });
+                                        const call = peer.call(peerId, localStream);
                                         setupAudioCall(call);
                                     }
                                 });
