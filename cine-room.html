@@ -931,6 +931,7 @@
                         sessionStorage.setItem('username', username);
                         usernameModal.remove();
                         document.querySelector('.full-screen-btn').classList.remove('hidden');
+                        initAudioSystem();
                         unlockAudioContextOnGesture();
                         initAsClient();
                     }
@@ -1300,12 +1301,16 @@
                     audioCtx.resume();
                 }
 
-                // Toca um buffer silencioso de 1ms para forçar o iOS a liberar a saída de áudio do dispositivo
+                // Buffer silencioso WebAudio
                 const buffer = audioCtx.createBuffer(1, 1, 22050);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
                 source.connect(audioCtx.destination);
                 source.start(0);
+
+                // Desbloqueia permissão de Autoplay de tags <audio> no Safari iOS
+                const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
+                silentAudio.play().catch(() => { });
             }
 
             // Garante que se o Host clicar em qualquer lugar da tela, o contexto de áudio ativa
@@ -1322,27 +1327,23 @@
                         audioCtx.resume();
                     }
 
-                    // 1. Injeta o áudio da stream direto na placa de som via WebAudio API (Ignore as travas de Autoplay do HTML5)
-                    if (audioCtx) {
-                        try {
-                            const source = audioCtx.createMediaStreamSource(remoteStream);
-                            source.connect(audioCtx.destination);
-                        } catch (err) {
-                            console.error("Erro ao conectar stream no AudioContext:", err);
-                        }
-                    }
-
-                    // 2. Elemento mudo invisível apenas para o Garbage Collector do WebKit não matar a faixa na memória
                     let remoteAudio = document.getElementById(`audio-${call.peer}`);
                     if (!remoteAudio) {
                         remoteAudio = document.createElement('audio');
                         remoteAudio.id = `audio-${call.peer}`;
-                        remoteAudio.muted = true; // Mudo para não duplicar o áudio e não ser bloqueado pelo iOS
+                        remoteAudio.autoplay = true;
+                        remoteAudio.playsInline = true;
+                        remoteAudio.setAttribute('playsinline', '');
                         remoteAudio.style.display = 'none';
                         document.body.appendChild(remoteAudio);
                     }
+
                     remoteAudio.srcObject = remoteStream;
-                    remoteAudio.play().catch(() => { });
+                    remoteAudio.muted = false; // Precisa ser false para emitir som no WebKit
+
+                    remoteAudio.play().catch(err => {
+                        console.error("Erro no autoplay do áudio no iOS:", err);
+                    });
                 });
 
                 call.on('close', () => {
