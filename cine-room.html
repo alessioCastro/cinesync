@@ -485,6 +485,7 @@
         .participant-item {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
             padding: 8px 10px;
             border-radius: 8px;
@@ -523,15 +524,24 @@
 
         .participant-info {
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            align-items: flex-start;
+            gap: 6px;
         }
 
         .participant-name-row {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
             gap: 6px;
+        }
+
+        .highlight {
+            background: #ffffff21;
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 4px;
         }
 
         .participant-name {
@@ -540,21 +550,12 @@
             color: #f4f4f5;
         }
 
-        .badge-host {
-            background: #6366f1;
-            color: #ffffff;
-            font-size: 0.55rem;
-            font-weight: 800;
-            padding: 2px 5px;
-            border-radius: 4px;
-        }
-
         .ping-tag {
             margin-left: auto;
             color: #22c55e;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
 
         .green-circle {
@@ -727,7 +728,6 @@
                 width: 100%;
                 height: auto;
                 background: #101216;
-
             }
 
             .sidebar-tabs {
@@ -808,12 +808,10 @@
             <div class="player-section" id="player-container">
                 <video playsinline webkit-playsinline id="main-video"></video>
 
-                <!-- Overlay de Progresso da Transferência -->
                 <div class="transfer-overlay hidden" id="transfer-overlay">
                     <div class="transfer-card">
                         <h3 id="transfer-title">Transferindo arquivo...</h3>
 
-                        <!-- Progresso do Host/Local -->
                         <div class="progress-group">
                             <div class="progress-label">
                                 <span id="local-progress-title">Seu Envio (Host)</span>
@@ -824,13 +822,11 @@
                             </div>
                         </div>
 
-                        <!-- Lista de Clientes (Visível apenas para o Host) -->
                         <div class="client-progress-section hidden" id="host-clients-progress">
                             <div class="client-progress-title">Download dos Clientes:</div>
                             <div class="client-progress-list" id="client-progress-list"></div>
                         </div>
 
-                        <!-- Mensagem de Conclusão Total -->
                         <div class="completed-msg hidden" id="all-completed-msg">
                             ✓ Todos os clientes baixaram o vídeo!
                         </div>
@@ -908,7 +904,6 @@
         </div>
 
         <aside class="chat-sidebar hidden" id="sidebar">
-            <!-- Abas Visíveis Apenas no Mobile -->
             <div class="sidebar-tabs">
                 <button class="tab-btn active" id="tab-chat-btn" onclick="switchSidebarTab('chat')">CHAT DA
                     SALA</button>
@@ -923,38 +918,14 @@
                 </button>
             </div>
 
-            <!-- Bloco 1: Participantes P2P -->
+            <!-- Bloco 1: Participantes P2P Dinâmico -->
             <div class="sidebar-card participants-card mobile-hidden" id="card-participants">
                 <div class="card-header desktop-only-header">
                     <span>Participantes P2P</span>
                     <button class="more-btn">•••</button>
                 </div>
                 <div class="participants-list" id="participants-list">
-                    <div class="participant-item is-host">
-                        <div class="participant-info">
-                            <div class="participant-name-row">
-                                <span class="participant-name">Você</span>
-                                <span class="badge-host">HOST</span>
-                            </div>
-                        </div>
-                        <div class="ping-tag">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fbbf24" class="crown-icon">
-                                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z" />
-                            </svg>
-                            <div class="green-circle"></div>
-                        </div>
-                    </div>
-                    <div class="participant-item">
-                        <div class="participant-info">
-                            <div class="participant-name-row">
-                                <span class="participant-name">Você</span>
-                                <span class="badge-host">HOST</span>
-                            </div>
-                        </div>
-                        <div class="ping-tag">
-                            <div class="green-circle"></div>
-                        </div>
-                    </div>
+                    <!-- Renderizado dinamicamente pelo JavaScript -->
                 </div>
             </div>
 
@@ -972,7 +943,7 @@
                 <div class="chat-input-area">
                     <form id="chat-form">
                         <div class="input-wrapper">
-                            <input type="text" id="chat-input" placeholder="Entrar um mensaje..." autocomplete="off">
+                            <input type="text" id="chat-input" placeholder="Enviar uma mensagem..." autocomplete="off">
                             <button type="submit" class="send-btn">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5">
@@ -1039,7 +1010,6 @@
     </div>
 
     <script>
-
         function switchSidebarTab(tab) {
             const cardChat = document.getElementById('card-chat');
             const cardParticipants = document.getElementById('card-participants');
@@ -1087,7 +1057,6 @@
             const videoForm = document.getElementById('video-form');
             const usernameForm = document.getElementById('username-form');
 
-            // Overlay de Progresso
             const transferOverlay = document.getElementById('transfer-overlay');
             const transferTitle = document.getElementById('transfer-title');
             const localProgressTitle = document.getElementById('local-progress-title');
@@ -1100,7 +1069,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const roomId = urlParams.get('roomId');
             const mode = urlParams.get('mode') || 'client';
-            let username = sessionStorage.getItem('username') || 'Anônimo';
+            let username = sessionStorage.getItem('username') || (mode === 'host' ? 'Host (Você)' : 'Anônimo');
 
             let isHost = false;
             let syncWithHost = true;
@@ -1113,12 +1082,99 @@
             let receivedChunks = [];
             let incomingMeta = null;
             let receivedBytes = 0;
-            let clientProgressState = {}; // Guarda o progresso dos clientes para o Host
+            let clientProgressState = {};
+            let roomPeers = [];
 
-            // Variáveis globais para gerenciar o áudio
             let silentStream = null;
 
-            // Função que roda DENTRO do evento do Modal (Gesto Válido do iOS)
+            // ==========================================
+            // RENDERIZAÇÃO DINÂMICA DE PARTICIPANTES
+            // ==========================================
+            let lastParticipantsCache = '';
+
+            function renderParticipants(participants) {
+                const participantsList = document.getElementById('participants-list');
+                const mobileP2PCount = document.getElementById('mobile-p2p-count');
+
+                if (!participantsList) return;
+
+                // 1. Interrompe a execução se os dados não mudaram (evita reflow e flickering)
+                const currentCache = JSON.stringify(participants);
+                if (currentCache === lastParticipantsCache) return;
+                lastParticipantsCache = currentCache;
+
+                if (mobileP2PCount) mobileP2PCount.textContent = participants.length;
+
+                // 2. Mapeia os elementos DOM atuais usando data-peer-id
+                const existingNodes = new Map();
+                participantsList.querySelectorAll('.participant-item').forEach(node => {
+                    existingNodes.set(node.dataset.peerId, node);
+                });
+
+                const activeIds = new Set();
+
+                // 3. Atualiza ou insere novos participantes sem destruir a árvore DOM
+                participants.forEach(p => {
+                    activeIds.add(p.id);
+                    const isSelf = p.id === peer?.id;
+                    let item = existingNodes.get(p.id);
+
+                    if (!item) {
+                        item = document.createElement('div');
+                        item.dataset.peerId = p.id;
+                        participantsList.appendChild(item);
+                    }
+
+                    const targetClass = `participant-item ${p.isHost ? 'is-host' : ''}`;
+                    if (item.className !== targetClass) {
+                        item.className = targetClass;
+                    }
+
+                    const safeName = escapeHtml(p.username);
+                    const isHostBadge = p.isHost ? `<span class="badge-host highlight">HOST</span>` : '';
+                    const selfTag = isSelf ? ` <span class="highlight">Você</span>` : '';
+
+                    const newHTML = `
+            <div class="participant-info">
+                <div class="participant-name-row">
+                    <span class="participant-name">${safeName}</span>
+                    ${isHostBadge}
+                </div>
+                ${selfTag}
+            </div>
+            <div class="ping-tag">
+                ${p.isHost ? `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fbbf24" class="crown-icon">
+                        <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z" />
+                    </svg>` : ''}
+                <div class="green-circle"></div>
+            </div>
+        `;
+
+                    // Só toca na árvore interna se o conteúdo HTML for diferente
+                    if (item.innerHTML !== newHTML) {
+                        item.innerHTML = newHTML;
+                    }
+                });
+
+                // 4. Remove do DOM apenas quem se desconectou
+                existingNodes.forEach((node, id) => {
+                    if (!activeIds.has(id)) {
+                        node.remove();
+                    }
+                });
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
             function initAudioSystem() {
                 if (audioCtx) return;
 
@@ -1126,7 +1182,6 @@
                 audioCtx = new AudioContextClass({ sampleRate: 48000 });
                 audioCtx.resume();
 
-                // Oscilador com ganho zero (silêncio real com track WebRTC ativa)
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 gain.gain.value = 0;
@@ -1137,13 +1192,11 @@
                 osc.start();
 
                 const silentTrack = dst.stream.getAudioTracks()[0];
-                silentTrack.enabled = true; // Mantém a faixa ativa para o iOS não cortar a transmissão
+                silentTrack.enabled = true;
                 silentStream = new MediaStream([silentTrack]);
             }
 
             function appendMessage(sender, text) {
-                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message';
 
@@ -1242,19 +1295,14 @@
                 sendToAllClients({ type: 'video-changed', provider: 'direct', url: videoUrl });
             });
 
-            // ==========================================
-            // ENVIO DE ARQUIVO VÍDEO COM CONTROLE DE FLUXO (BACKPRESSURE)
-            // ==========================================
             fileInput.onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                // 1. Player do Host carrega o arquivo localmente
                 const videoUrl = URL.createObjectURL(file);
                 video.src = videoUrl;
                 video.load();
 
-                // 2. Prepara o Overlay do Host
                 transferTitle.textContent = `Enviando "${file.name}"...`;
                 localProgressTitle.textContent = "Seu Envio (Host)";
                 transferBar.style.width = '0%';
@@ -1273,14 +1321,14 @@
                         clientItem.className = 'client-progress-item';
                         clientItem.id = `client-item-${c.peer}`;
                         clientItem.innerHTML = `
-                <div class="progress-label">
-                    <span>${clientName}</span>
-                    <span id="client-percent-${c.peer}">0%</span>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="client-bar-${c.peer}"></div>
-                </div>
-            `;
+                            <div class="progress-label">
+                                <span>${clientName}</span>
+                                <span id="client-percent-${c.peer}">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="client-bar-${c.peer}"></div>
+                            </div>
+                        `;
                         clientProgressList.appendChild(clientItem);
                     });
                 } else {
@@ -1289,7 +1337,6 @@
 
                 transferOverlay.classList.remove('hidden');
 
-                // 3. Notifica os clientes sobre o início do envio
                 sendToAllClients({
                     type: 'video-meta',
                     name: file.name,
@@ -1297,9 +1344,8 @@
                     mimeType: file.type
                 });
 
-                // Aumentamos o chunk para 256KB (ideal para arquivos de 100MB+)
                 const CHUNK_SIZE = 256 * 1024;
-                const MAX_BUFFERED_AMOUNT = 2 * 1024 * 1024; // 2MB de limite de buffer
+                const MAX_BUFFERED_AMOUNT = 2 * 1024 * 1024;
                 let offset = 0;
                 const reader = new FileReader();
 
@@ -1324,7 +1370,6 @@
                 reader.onload = (event) => {
                     const buffer = event.target.result;
 
-                    // ENVIO DIRETO DO ARRAYBUFFER (SEM OBJETO JS ENVOLVENDO)
                     clientsConn.forEach(clientConn => {
                         if (clientConn.open) {
                             clientConn.send(buffer);
@@ -1340,7 +1385,6 @@
                     if (offset < file.size) {
                         setTimeout(readNextChunk, 1);
                     } else {
-                        // Não precisamos mais do 'video-end', a recepção detecta pelo tamanho total de bytes
                         if (clientsConn.length === 0) {
                             setTimeout(() => transferOverlay.classList.add('hidden'), 800);
                         }
@@ -1352,25 +1396,14 @@
 
             const audioConstraints = {
                 audio: {
-                    echoCancellation: true,   // Mantém para evitar microfonia no mobile
-                    noiseSuppression: true,   // Remove ruídos de fundo
-                    autoGainControl: true,    // Evita oscilações bruscas no volume
-                    sampleRate: 48000,        // Qualidade de estúdio (48 kHz)
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    sampleRate: 48000,
                     sampleSize: 16,
-                    channelCount: 1           // 1 para voz limpa (Mono) ou 2 se quiser enviar áudio Stereo
+                    channelCount: 1
                 }
             };
-
-            function optimizeAudioSDP(sdp) {
-                // Força o Opus a operar em 96 kbps (96000) com Forward Error Correction (fec)
-                if (sdp.includes('opus/48000')) {
-                    return sdp.replace(
-                        'useinbandfec=1',
-                        'useinbandfec=1;maxaveragebitrate=96000;stereo=1;sprop-stereo=1'
-                    );
-                }
-                return sdp;
-            }
 
             document.body.addEventListener('click', async (event) => {
                 const target = event.target;
@@ -1386,7 +1419,6 @@
                         }
 
                         try {
-                            // Pega o microfone real
                             try {
                                 localStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
                             } catch (err) {
@@ -1394,10 +1426,8 @@
                             }
 
                             micBtn.classList.add('active');
-
                             const realTrack = localStream.getAudioTracks()[0];
 
-                            // Substitui a faixa silenciosa pela faixa real do mic em todas as conexões ativas
                             activeCalls.forEach(call => {
                                 const senders = call.peerConnection.getSenders();
                                 const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
@@ -1406,7 +1436,6 @@
                                 }
                             });
 
-                            // Se for novo participante na sala, estabelece chamadas Mesh com os demais
                             const targetsToCall = isHost ? clientsConn.map(c => c.peer) : roomPeers;
                             targetsToCall.forEach(peerId => {
                                 if (peerId !== peer.id && !activeCalls.some(c => c.peer === peerId)) {
@@ -1422,7 +1451,6 @@
                         return;
                     }
 
-                    // Se já tinha a localStream capturada, apenas alterna Mute / Unmute
                     const audioTrack = localStream.getAudioTracks()[0];
                     if (audioTrack) {
                         audioTrack.enabled = !audioTrack.enabled;
@@ -1584,14 +1612,12 @@
                     audioCtx.resume();
                 }
 
-                // Buffer silencioso WebAudio
                 const buffer = audioCtx.createBuffer(1, 1, 22050);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
                 source.connect(audioCtx.destination);
                 source.start(0);
 
-                // Desbloqueia permissão de Autoplay de tags <audio> no Safari iOS
                 const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
                 silentAudio.play().catch(() => { });
             }
@@ -1626,9 +1652,8 @@
                     }
 
                     remoteAudio.srcObject = remoteStream;
-                    remoteAudio.muted = false; // OBRIGATÓRIO no iOS para a WebKit não congelar a faixa WebRTC
+                    remoteAudio.muted = false;
 
-                    // Conecta o áudio recebido direto no AudioContext (placa de som)
                     if (audioCtx) {
                         try {
                             const source = audioCtx.createMediaStreamSource(remoteStream);
@@ -1638,12 +1663,9 @@
                         }
                     }
 
-                    // Tenta a reprodução direta na tag HTML
                     const playPromise = remoteAudio.play();
                     if (playPromise !== undefined) {
                         playPromise.catch(() => {
-                            // Fallback: se o iOS do Host bloquear por falta de toque recente na tela, 
-                            // força a reprodução no primeiro toque que o Host der na página
                             const unlockOnTouch = () => {
                                 remoteAudio.play();
                                 if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -1683,8 +1705,6 @@
 
                 peer.on('call', (call) => {
                     initAudioSystem();
-
-                    // Envia o mic real se ativado ou o stream silencioso para manter o canal aberto
                     const streamToSend = (localStream && localStream.getAudioTracks()[0]?.enabled)
                         ? localStream
                         : silentStream;
@@ -1711,10 +1731,11 @@
                 try {
                     peer = await createPeer(roomId);
                     isHost = true;
-                    onlineCountEl.textContent = `1 Online`;
                     statusBadge.classList.remove('hidden');
                     playPauseBtn.classList.remove('hidden');
                     progressRange.classList.remove('hidden');
+
+                    updateRoomCount();
 
                     setInterval(() => {
                         const now = Date.now();
@@ -1743,7 +1764,6 @@
                             clientConn.send({ type: 'video-info', url: video.src, time: video.currentTime, isPaused: video.paused });
                         }
 
-                        // Se o Host já estiver com o microfone ligado, liga para o cliente que acabou de entrar
                         if (localStream && localStream.getAudioTracks()[0]?.enabled) {
                             if (!activeCalls.some(c => c.peer === clientConn.peer)) {
                                 const call = peer.call(clientConn.peer, localStream);
@@ -1776,8 +1796,6 @@
 
                 peer.on('call', (call) => {
                     initAudioSystem();
-
-                    // Envia o mic real se ativado ou o stream silencioso para manter o canal aberto
                     const streamToSend = (localStream && localStream.getAudioTracks()[0]?.enabled)
                         ? localStream
                         : silentStream;
@@ -1791,13 +1809,8 @@
                 });
             }
 
-            // --- 3. PROCESSAMENTO DE DADOS (DADOS E FEEDBACKS DE DOWNLOAD) ---
             function setupDataFlow(connection) {
                 connection.on('data', (data) => {
-
-                    // ==========================================
-                    // A. RECEBIMENTO DE BINÁRIO PURO (CHUNKS DO VÍDEO)
-                    // ==========================================
                     if (data instanceof ArrayBuffer || data.byteLength !== undefined) {
                         if (receivedChunks && incomingMeta) {
                             receivedChunks.push(data);
@@ -1807,13 +1820,11 @@
                             transferBar.style.width = `${percent}%`;
                             transferPercent.textContent = `${percent}%`;
 
-                            // Envia feedback de progresso ao Host a cada alteração de %
                             if (connection.lastReportedPercent !== percent) {
                                 connection.lastReportedPercent = percent;
                                 connection.send({ type: 'client-download-progress', percent });
                             }
 
-                            // DOWNLOAD CONCLUÍDO (Atingiu o tamanho total enviado pelo 'video-meta')
                             if (receivedBytes >= incomingMeta.size) {
                                 const videoBlob = new Blob(receivedChunks, { type: incomingMeta.mimeType });
                                 const localVideoUrl = URL.createObjectURL(videoBlob);
@@ -1821,10 +1832,8 @@
                                 video.src = localVideoUrl;
                                 video.load();
 
-                                // Avisa o Host que o download terminou
                                 connection.send({ type: 'client-download-complete' });
 
-                                // Reseta variáveis de controle
                                 receivedChunks = [];
                                 incomingMeta = null;
                                 receivedBytes = 0;
@@ -1837,9 +1846,6 @@
                         return;
                     }
 
-                    // ==========================================
-                    // B. MENSAGENS DE CONTROLE E CHAT (OBJETOS JSON)
-                    // ==========================================
                     if (!data?.type) return;
 
                     if (data.type === 'ping') {
@@ -1847,7 +1853,6 @@
                         return;
                     }
 
-                    // 1. FEEDBACKS RECEBIDOS PELO HOST
                     if (isHost) {
                         if (data.type === 'client-download-progress') {
                             if (clientProgressState[connection.peer]) {
@@ -1876,7 +1881,6 @@
                         }
                     }
 
-                    // 2. RECEBIMENTO DE METADADOS NO CLIENTE
                     if (data.type === 'video-meta') {
                         incomingMeta = data;
                         receivedChunks = [];
@@ -1891,7 +1895,6 @@
                         return;
                     }
 
-                    // 3. CHAT E SALA
                     if (data.type === 'join-room') {
                         connection.customUsername = data.username;
                         appendMessage('Sistema', `${data.username} entrou na sala!`);
@@ -1904,6 +1907,8 @@
                                 text: `${data.username} entrou na sala.`
                             });
                         });
+
+                        updateRoomCount();
                         return;
                     }
 
@@ -1919,17 +1924,17 @@
                         return;
                     }
 
-                    if (isHost && syncWithHost) return;
-
                     if (data.type === 'room-stats') {
                         onlineCountEl.textContent = `${data.total} Online`;
 
+                        if (data.participants) {
+                            renderParticipants(data.participants);
+                        }
+
                         if (data.peers) {
-                            // Atualiza a lista de peers da sala (removendo meu próprio ID)
                             const previousPeers = [...roomPeers];
                             roomPeers = data.peers.filter(id => id !== peer.id);
 
-                            // Se eu já estou com o microfone ligado e entrou alguém novo, ligo para ele automaticamente!
                             if (localStream && localStream.getAudioTracks()[0]?.enabled) {
                                 roomPeers.forEach(peerId => {
                                     if (!previousPeers.includes(peerId)) {
@@ -1942,7 +1947,6 @@
                         return;
                     }
 
-                    // 4. PLAYER & YOUTUBE
                     if (data.type === 'video-info') {
                         if (data.provider === 'youtube') {
                             carregarPlayerYouTube(data.id);
@@ -2004,17 +2008,31 @@
                 }
             }
 
-            // Variável global para armazenar todos os participantes da sala
-            let roomPeers = [];
-
             function updateRoomCount() {
+                if (!isHost) return;
+
                 clientsConn = clientsConn.filter(c => c.open);
-                const totalUsers = clientsConn.length + 1;
+
+                const participants = [
+                    { id: peer.id, username: username, isHost: true },
+                    ...clientsConn.map(c => ({
+                        id: c.peer,
+                        username: c.customUsername || `Convidado (${c.peer.substring(0, 4)})`,
+                        isHost: false
+                    }))
+                ];
+
+                const totalUsers = participants.length;
                 onlineCountEl.textContent = `${totalUsers} Online`;
 
-                // Cria a lista com o ID do Host + ID de todos os clientes
-                const allPeers = [peer.id, ...clientsConn.map(c => c.peer)];
-                sendToAllClients({ type: 'room-stats', total: totalUsers, peers: allPeers });
+                renderParticipants(participants);
+
+                sendToAllClients({
+                    type: 'room-stats',
+                    total: totalUsers,
+                    participants: participants,
+                    peers: participants.map(p => p.id)
+                });
             }
 
             function sendToAllClients(data) {
@@ -2046,7 +2064,6 @@
             }
 
             function onYouTubePlayerError(event) {
-                // 101 e 150: O proprietário desativou a reprodução incorporada
                 if (event.data === 101 || event.data === 150) {
                     errorMessage.innerText = "Este vídeo possui restrições de direitos autorais e não permite reprodução fora do site do YouTube. Tente usar um envio não-oficial ou outro link.";
                     errorModal.classList.remove('hidden');
