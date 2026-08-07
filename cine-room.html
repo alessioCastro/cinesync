@@ -1085,6 +1085,8 @@
             let clientProgressState = {};
             let roomPeers = [];
 
+            let currentUploadedFile = null;
+
             let silentStream = null;
 
             // ==========================================
@@ -1295,9 +1297,59 @@
                 sendToAllClients({ type: 'video-changed', provider: 'direct', url: videoUrl });
             });
 
+            function sendFileToClient(clientConn, file, updateHostUi = false) {
+                clientConn.send({
+                    type: 'video-meta',
+                    name: file.name,
+                    size: file.size,
+                    mimeType: file.type
+                });
+
+                const CHUNK_SIZE = 256 * 1024;
+                const MAX_BUFFERED_AMOUNT = 2 * 1024 * 1024;
+                let offset = 0;
+                const reader = new FileReader();
+
+                const readNextChunk = () => {
+                    if (!clientConn.open) return;
+
+                    const dc = clientConn.dataChannel || clientConn._dc;
+                    if (dc && dc.bufferedAmount > MAX_BUFFERED_AMOUNT) {
+                        setTimeout(readNextChunk, 10);
+                        return;
+                    }
+
+                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    reader.readAsArrayBuffer(slice);
+                };
+
+                reader.onload = (event) => {
+                    if (!clientConn.open) return;
+
+                    const buffer = event.target.result;
+                    clientConn.send(buffer);
+                    offset += buffer.byteLength;
+
+                    // Atualiza a barra de envio principal do Host
+                    if (updateHostUi) {
+                        const percent = Math.min(100, Math.floor((offset / file.size) * 100));
+                        transferBar.style.width = `${percent}%`;
+                        transferPercent.textContent = `${percent}%`;
+                    }
+
+                    if (offset < file.size) {
+                        setTimeout(readNextChunk, 1);
+                    }
+                };
+
+                readNextChunk();
+            }
+
             fileInput.onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
+
+                currentUploadedFile = file;
 
                 const videoUrl = URL.createObjectURL(file);
                 video.src = videoUrl;
@@ -1313,7 +1365,7 @@
 
                 if (clientsConn.length > 0) {
                     hostClientsProgressSection.classList.remove('hidden');
-                    clientsConn.forEach(c => {
+                    clientsConn.forEach((c, index) => {
                         const clientName = c.customUsername || `Cliente (${c.peer.substring(0, 4)})`;
                         clientProgressState[c.peer] = { percent: 0, done: false };
 
@@ -1321,77 +1373,21 @@
                         clientItem.className = 'client-progress-item';
                         clientItem.id = `client-item-${c.peer}`;
                         clientItem.innerHTML = `
-                            <div class="progress-label">
-                                <span>${clientName}</span>
-                                <span id="client-percent-${c.peer}">0%</span>
-                            </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill" id="client-bar-${c.peer}"></div>
-                            </div>
-                        `;
+                <div class="progress-label">
+                    <span>${clientName}</span>
+                    <span id="client-percent-${c.peer}">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="client-bar-${c.peer}"></div>
+                </div>
+            `;
                         clientProgressList.appendChild(clientItem);
+
+                        // Passa true apenas no primeiro cliente para atualizar a barra principal do Host
+                        sendFileToClient(c, file, index === 0);
                     });
-                } else {
-                    hostClientsProgressSection.classList.add('hidden');
+                    transferOverlay.classList.remove('hidden');
                 }
-
-                transferOverlay.classList.remove('hidden');
-
-                sendToAllClients({
-                    type: 'video-meta',
-                    name: file.name,
-                    size: file.size,
-                    mimeType: file.type
-                });
-
-                const CHUNK_SIZE = 256 * 1024;
-                const MAX_BUFFERED_AMOUNT = 2 * 1024 * 1024;
-                let offset = 0;
-                const reader = new FileReader();
-
-                const readNextChunk = () => {
-                    let isBufferFull = false;
-                    clientsConn.forEach(clientConn => {
-                        const dc = clientConn.dataChannel || clientConn._dc;
-                        if (dc && dc.bufferedAmount > MAX_BUFFERED_AMOUNT) {
-                            isBufferFull = true;
-                        }
-                    });
-
-                    if (isBufferFull) {
-                        setTimeout(readNextChunk, 10);
-                        return;
-                    }
-
-                    const slice = file.slice(offset, offset + CHUNK_SIZE);
-                    reader.readAsArrayBuffer(slice);
-                };
-
-                reader.onload = (event) => {
-                    const buffer = event.target.result;
-
-                    clientsConn.forEach(clientConn => {
-                        if (clientConn.open) {
-                            clientConn.send(buffer);
-                        }
-                    });
-
-                    offset += buffer.byteLength;
-
-                    const percent = Math.min(100, Math.floor((offset / file.size) * 100));
-                    transferBar.style.width = `${percent}%`;
-                    transferPercent.textContent = `${percent}%`;
-
-                    if (offset < file.size) {
-                        setTimeout(readNextChunk, 1);
-                    } else {
-                        if (clientsConn.length === 0) {
-                            setTimeout(() => transferOverlay.classList.add('hidden'), 800);
-                        }
-                    }
-                };
-
-                readNextChunk();
             };
 
             const audioConstraints = {
@@ -1760,8 +1756,17 @@
 
                     clientConn.on('open', () => {
                         updateRoomCount();
-                        if (video.src) {
-                            clientConn.send({ type: 'video-info', url: video.src, time: video.currentTime, isPaused: video.paused });
+
+                        // Se já houver um arquivo local hospedado, envia para o novo participante
+                        if (currentUploadedFile) {
+                            sendFileToClient(clientConn, currentUploadedFile);
+                        } else if (video.src && !video.src.startsWith('blob:')) {
+                            clientConn.send({
+                                type: 'video-info',
+                                url: video.src,
+                                time: video.currentTime,
+                                isPaused: video.paused
+                            });
                         }
 
                         if (localStream && localStream.getAudioTracks()[0]?.enabled) {
@@ -1877,6 +1882,13 @@
 
                                 checkAllClientsFinished();
                             }
+
+                            // Envia a posição exata do player para o cliente recém-sincronizado
+                            connection.send({
+                                type: 'video-state',
+                                currentTime: video.currentTime,
+                                paused: video.paused
+                            });
                             return;
                         }
                     }
