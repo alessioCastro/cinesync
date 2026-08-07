@@ -1241,7 +1241,6 @@
                         sessionStorage.setItem('username', username);
                         usernameModal.remove();
                         document.querySelector('.full-screen-btn').classList.remove('hidden');
-                        video.muted = true;
                         video.play().then(() => video.pause()).catch(() => { });
                         initAudioSystem();
                         unlockAudioContextOnGesture();
